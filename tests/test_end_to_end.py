@@ -112,3 +112,40 @@ def test_pipeline_vote_and_views(rows):
     a_calls, b_calls, c_calls = (verifiers[n].calls for n in "abc")
     assert len(a_calls) == len(b_calls) == len(c_calls) == 4
     assert a_calls == b_calls == c_calls
+
+
+def test_pipeline_stops_cleanly_when_a_verifier_keeps_failing(workspace):
+    tmp, models = workspace
+    cli.main(["prepare", "--test-per-level", "2", "--val-size", "6", "--dev-size", "3"])
+
+    def always_rate_limited(messages):
+        raise RuntimeError("Error code: 429 - Rate limit exceeded")
+
+    models["mistral"] = FakeModel("fake-mistral", always_rate_limited)
+    models["mistral"].provider = "mistral"
+    with pytest.raises(SystemExit) as stop:
+        cli.main(["pipeline", "--split", "dev", "--name", "rl"])
+    message = str(stop.value)
+    assert "verifier 'mistral'" in message and "0 of 6 items were saved" in message
+    assert "mistral-local" in message
+
+    # evaluate and overlap on the empty run give a clear message, not a FileNotFoundError
+    for command in (["evaluate", str(tmp / "results/runs/rl")], ["overlap", str(tmp / "results/runs/rl")]):
+        with pytest.raises(SystemExit, match="did not finish any item"):
+            cli.main(command)
+
+
+def test_pipeline_refuses_to_mix_verifier_sets(workspace):
+    tmp, models = workspace
+    models["mistral-local"] = FakeModel("fake-mistral-local", answer_reader(6))
+    cli.main(["prepare", "--test-per-level", "2", "--val-size", "6", "--dev-size", "3"])
+    cli.main(["pipeline", "--split", "dev", "--name", "mix"])
+    with pytest.raises(SystemExit, match="new --name"):
+        cli.main(["pipeline", "--split", "dev", "--verifiers", "llama,mistral-local,phi", "--name", "mix"])
+    cli.main(["pipeline", "--split", "dev", "--verifiers", "llama,mistral-local,phi", "--name", "mix-local"])
+    assert (tmp / "results/runs/mix-local/metrics.json").exists()
+
+
+def test_mistral_local_alias():
+    assert llm.resolve_model("mistral-local") == ("ollama", "mistral:7b")
+    assert llm.MODEL_FAMILY["mistral-local"] == "Mistral"

@@ -30,6 +30,14 @@ from .tools.pubmed import PubMedSearch, keyword_queries
 EvidenceMode = Literal["none", "pubmed", "source"]
 
 
+class VerifierCallError(RuntimeError):
+    """A verifier's model call still failed after all retries (for example a 429 rate limit)."""
+
+    def __init__(self, name: str, model: ChatModel, err: Exception):
+        self.name, self.provider, self.model, self.err = name, model.provider, model.model, err
+        super().__init__(f"verifier '{name}' ({model.provider}:{model.model}) failed: {type(err).__name__}: {err}")
+
+
 def gather_evidence(item: Item, mode: EvidenceMode, pubmed: Optional[PubMedSearch], k: int, state: VerificationState) -> list[Evidence]:
     if mode == "none":
         state.trace.append("evidence: none")
@@ -67,7 +75,10 @@ def verify_item(
     evidence_text = format_evidence(state.evidence, max_chars=max_chars) if state.evidence else None
 
     for name, model in verifiers.items():
-        res = model.chat(verifier_messages(item.question, item.answer, evidence_text))
+        try:
+            res = model.chat(verifier_messages(item.question, item.answer, evidence_text))
+        except Exception as err:  # re-raised with the verifier name
+            raise VerifierCallError(name, model, err) from err
         code = parse_verdict(res.text, allow_unsure=True)
         state.verdicts.append(
             Verdict(

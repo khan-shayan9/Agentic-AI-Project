@@ -9,7 +9,7 @@ AI4015 Agentic AI semester project. Base paper: MedHallu (Pandit et al., EMNLP 2
 Given a medical question and an answer, the system decides whether the answer is **factual (0)**, **hallucinated (1)**, or says **not sure (2)**.
 
 - **Baseline:** one LLM judges each answer, exactly as in the MedHallu paper (authors' prompt, settings and metric).
-- **Proposed system:** an evidence agent searches PubMed (with the question's own source abstract blocked). Three verifiers from different model families (Llama 3.1 8B from Meta, Mistral Small from Mistral AI, Phi-4-mini from Microsoft) then judge separately, and a vote rule accepts, rejects or abstains.
+- **Proposed system:** an evidence agent searches PubMed (with the question's own source abstract blocked). Three verifiers from different model families (Llama 3.1 8B from Meta, Mistral Small 4 from Mistral AI, Phi-4-mini from Microsoft) then judge separately, and a vote rule accepts, rejects or abstains.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the diagram and the data contracts.
 
@@ -53,10 +53,10 @@ Install [Ollama](https://ollama.com/download) and run `ollama pull llama3.1:8b` 
 | Service | Used for | Key in `.env` | Free limit |
 | --- | --- | --- | --- |
 | Ollama (local) | Llama 3.1 8B (baseline and verifier) and Phi-4-mini (verifier) | none | no limit |
-| [Mistral](https://console.mistral.ai/api-keys) | Mistral Small verifier | `MISTRAL_API_KEY` | about 1 request/second (phone check, data-training opt-in) |
+| [Mistral](https://console.mistral.ai/api-keys) | Mistral Small 4 verifier (`mistral-small-2603`, reasoning off) | `MISTRAL_API_KEY` | 1 request/second and 20,000 tokens/minute (Studio key, free plan) |
 | [NCBI](https://www.ncbi.nlm.nih.gov/account/settings/) | PubMed evidence | `NCBI_EMAIL`, optional `NCBI_API_KEY` | 3 requests/s, 10 with key |
 
-Mistral's rate (about one request per second) is the tightest limit. Every reply is cached and every run resumes where it stopped, so long runs can be split across sessions. Groq (gpt-oss-120b) is supported as an optional extra verifier (`--verifiers llama,mistral,phi,gptoss`) if your account works there.
+Mistral's limits (1 request per second, 20,000 tokens per minute) are the tightest; the client paces both. If the free Mistral API keeps returning error 429, use `--verifiers llama,mistral-local,phi` (Mistral 7B through Ollama, same model family; run `ollama pull mistral:7b` first). The Colab notebook checks the key and switches by itself. Every reply is cached and every run resumes where it stopped, so long runs can be split across sessions. Groq (gpt-oss-120b) is supported as an optional extra verifier (`--verifiers llama,mistral,phi,gptoss`) if your account works there.
 
 ## Commands
 
@@ -96,9 +96,13 @@ Filled in from the Colab run (`notebooks/phase1_baseline_colab.ipynb`, step 8). 
 
 | Run | Precision | Recall | F1 (95% interval) | Easy F1 | Medium F1 | Hard F1 |
 | --- | --- | --- | --- | --- | --- | --- |
-| Baseline B0: Llama 3.1 8B, no knowledge | | | | | | |
-| Baseline B1: Llama 3.1 8B, source abstract given | | | | | | |
+| Baseline B0: Llama 3.1 8B, no knowledge | 0.728 | 0.357 | 0.479 (0.419-0.533) | 0.683 | 0.428 | 0.281 |
+| MedHallu paper, same setting | 0.791 | not reported | 0.522 | 0.679 | 0.515 | 0.372 |
+| Baseline B1: Llama 3.1 8B, source abstract given | 0.833 | 0.700 | 0.761 (0.719-0.799) | 0.871 | 0.813 | 0.592 |
+| MedHallu paper, same setting | 0.775 | not reported | 0.797 | 0.880 | 0.796 | 0.722 |
 | Full system, dev split (40 answers, end-to-end check) | | | | | | |
+
+Both published F1 scores fall inside our 95% intervals. Giving the source abstract raises F1 by 0.282 (paper: 0.275). Our hard-answer F1 is lower than the paper's, likely because of Ollama's 4-bit model and the smaller test split. Coverage was 1.000 in both runs.
 
 ## Tests
 

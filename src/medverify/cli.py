@@ -77,7 +77,7 @@ def cmd_baseline(args):
 
 def cmd_pipeline(args):
     from .llm import make_model
-    from .pipeline import final_verdicts, run_pipeline
+    from .pipeline import VerifierCallError, final_verdicts, run_pipeline
     from .tools.pubmed import PubMedSearch
 
     items = _items(args.split, args.limit)
@@ -85,9 +85,30 @@ def cmd_pipeline(args):
     verifiers = {n: make_model(n, temperature=args.temperature) for n in names}
     pubmed = PubMedSearch() if args.evidence == "pubmed" else None
     out = _run_dir(args.name, f"pipeline-{args.evidence}-{args.split}")
-    config = vars(args) | {"items": len(items), "models": {n: m.model for n, m in verifiers.items()}}
-    (out / "config.json").write_text(json.dumps(config, indent=2, default=str))
-    states = run_pipeline(items, verifiers, args.evidence, pubmed, args.k, args.min_agree, out / "states.jsonl")
+    models = {n: m.model for n, m in verifiers.items()}
+    states_path = out / "states.jsonl"
+    old_config = out / "config.json"
+    if states_path.exists() and states_path.stat().st_size > 0 and old_config.exists():
+        old_models = json.loads(old_config.read_text()).get("models")
+        if old_models and old_models != models:
+            raise SystemExit(
+                f"{out} already holds results from other verifiers ({old_models}). "
+                "Use a new --name so the two runs are not mixed."
+            )
+    config = vars(args) | {"items": len(items), "models": models}
+    old_config.write_text(json.dumps(config, indent=2, default=str))
+    try:
+        states = run_pipeline(items, verifiers, args.evidence, pubmed, args.k, args.min_agree, states_path)
+    except VerifierCallError as err:
+        done = len(D.read_jsonl(states_path, VerificationState)) if states_path.exists() else 0
+        hint = ""
+        if err.provider == "mistral":
+            hint = (
+                "\nThe Mistral API keeps refusing calls (free-plan limit). Check your limits at "
+                "https://admin.mistral.ai, wait and re-run (finished items are kept), or use the local "
+                "fallback: ollama pull mistral:7b, then --verifiers llama,mistral-local,phi with a new --name."
+            )
+        raise SystemExit(f"Run stopped: {err}\n{done} of {len(items)} items were saved in {states_path}.{hint}")
     _score(out, items, final_verdicts(states))
 
 
@@ -95,9 +116,12 @@ def _load_run(run: Path):
     run = Path(run)
     config = json.loads((run / "config.json").read_text())
     items = _items(config["split"], config.get("limit"))
-    if (run / "states.jsonl").exists():
-        return config, items, D.read_jsonl(run / "states.jsonl", VerificationState), None
-    return config, items, None, D.read_jsonl(run / "predictions.jsonl", Verdict)
+    states_path, preds_path = run / "states.jsonl", run / "predictions.jsonl"
+    if states_path.exists() and states_path.stat().st_size > 0:
+        return config, items, D.read_jsonl(states_path, VerificationState), None
+    if preds_path.exists() and preds_path.stat().st_size > 0:
+        return config, items, None, D.read_jsonl(preds_path, Verdict)
+    raise SystemExit(f"No results in {run}: the run did not finish any item. Run it again first.")
 
 
 def _score(out: Path, items, verdicts):
@@ -184,7 +208,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(func=cmd_baseline)
 
     s = sub.add_parser("pipeline", help="multi-agent verification")
-    s.add_argument("--verifiers", default=",".join(DEFAULT_VERIFIERS), help="comma-separated model names")
+    s.add_argument("--verifiers", default=",".join(DEFAULT_VERIFIERS), help="comma-separated: llama, mistral, phi, mistral-local, gptoss")
     s.add_argument("--evidence", default="none", choices=["none", "pubmed", "source"])
     s.add_argument("--split", default="dev", choices=["dev", "val", "test"])
     s.add_argument("--k", type=int, default=3, help="evidence abstracts per item")
