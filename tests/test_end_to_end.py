@@ -149,3 +149,19 @@ def test_pipeline_refuses_to_mix_verifier_sets(workspace):
 def test_mistral_local_alias():
     assert llm.resolve_model("mistral-local") == ("ollama", "mistral:7b")
     assert llm.MODEL_FAMILY["mistral-local"] == "Mistral"
+
+
+def test_prompt_styles_run_compare_and_do_not_mix(workspace, capsys):
+    tmp, models = workspace
+    cli.main(["prepare", "--test-per-level", "2", "--val-size", "6", "--dev-size", "3"])
+    cli.main(["pipeline", "--split", "dev", "--prompt", "digits", "--name", "pd"])
+    sent = models["phi"].calls[-1]
+    assert "single digit" in sent[0]["content"]
+    cli.main(["pipeline", "--split", "dev", "--prompt", "reason", "--name", "pr"])
+    assert "Verdict:" in models["phi"].calls[-1][0]["content"]
+    with pytest.raises(SystemExit, match="another prompt"):
+        cli.main(["pipeline", "--split", "dev", "--prompt", "words", "--name", "pd"])
+    capsys.readouterr()
+    cli.main(["compare", str(tmp / "results/runs/pd"), str(tmp / "results/runs/pr")])
+    out = capsys.readouterr().out
+    assert "== pd  (prompt: digits" in out and "== pr  (prompt: reason" in out and "mistral-local" in out

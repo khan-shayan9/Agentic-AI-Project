@@ -74,16 +74,45 @@ def baseline_messages(
 
 # ------------------------------------------------------------------ verifier
 
-VERIFIER_INSTRUCTIONS = """You are one of several independent reviewers checking a medical answer.
-Decide whether the answer to the question is FACTUAL or HALLUCINATED (contains hallucinated or wrong information).
+# Three verifier prompt styles. The one used for the final runs is chosen on the validation
+# split (python -m medverify pipeline --split val --prompt ...), never on test.
+#   digits : reply 0 / 1 / 2 (first version; Phi-4-mini often replied "2" while its own
+#            explanation said the answer was wrong)
+#   words  : reply FACTUAL / HALLUCINATED / UNSURE (fixed Phi, but the models then rarely said
+#            HALLUCINATED, and Mistral 7B said UNSURE whenever the evidence was not on point)
+#   reason : one or two sentences of checking, then a last line "Verdict: <word>"
+PROMPT_STYLES = ("digits", "words", "reason")
+DEFAULT_PROMPT_STYLE = "words"
+
+_VERIFIER_HEAD = """You are one of several independent reviewers checking a medical answer.
+Decide whether the answer to the question is {choice}.
 Hallucinations can be: misreading the question, leaving out the key finding, a wrong biological mechanism,
 or invented methods, numbers or outcomes.
-{evidence_rule}
-If you cannot decide with reasonable confidence, say UNSURE.
+{{evidence_rule}}
+"""
+
+VERIFIER_INSTRUCTIONS_DIGITS = _VERIFIER_HEAD.format(
+    choice="factual (0) or contains hallucinated or wrong information (1)"
+) + """If you cannot decide with reasonable confidence, reply 2.
+Reply with a single digit: 0, 1 or 2. Nothing else."""
+
+VERIFIER_INSTRUCTIONS = _VERIFIER_HEAD.format(
+    choice="FACTUAL or HALLUCINATED (contains hallucinated or wrong information)"
+) + """If you cannot decide with reasonable confidence, say UNSURE.
 Reply with exactly one word: FACTUAL, HALLUCINATED or UNSURE. Nothing else."""
 
-# Word labels instead of 0/1/2: in the Phase 1 dev run, Phi-4-mini often replied "2" while its own
-# explanation said the answer was wrong, so digits were not a reliable way to read its judgement.
+VERIFIER_INSTRUCTIONS_REASON = _VERIFIER_HEAD.format(
+    choice="FACTUAL or HALLUCINATED (contains hallucinated or wrong information)"
+) + """Evidence that does not mention the topic is not a reason to be unsure: then judge with your own
+medical knowledge. Say UNSURE only if you truly cannot tell.
+First write one or two short sentences checking the answer's main claim.
+Then write the last line exactly as one of: Verdict: FACTUAL / Verdict: HALLUCINATED / Verdict: UNSURE"""
+
+_STYLE = {
+    "digits": (VERIFIER_INSTRUCTIONS_DIGITS, "Your judgement (0, 1 or 2):"),
+    "words": (VERIFIER_INSTRUCTIONS, "Your judgement (FACTUAL, HALLUCINATED or UNSURE):"),
+    "reason": (VERIFIER_INSTRUCTIONS_REASON, "Your check and verdict:"),
+}
 
 _EVIDENCE_RULE = "Use the numbered PubMed evidence below where it is relevant; it may be incomplete or off-topic."
 _NO_EVIDENCE_RULE = "Use your own medical knowledge."
@@ -99,12 +128,17 @@ def format_evidence(evidence: Sequence, max_chars: Optional[int] = 1000) -> str:
     return "\n\n".join(blocks)
 
 
-def verifier_messages(question: str, answer: str, evidence_text: Optional[str] = None) -> list[dict]:
+def verifier_messages(
+    question: str, answer: str, evidence_text: Optional[str] = None, style: str = DEFAULT_PROMPT_STYLE
+) -> list[dict]:
     """Messages for one independent verifier agent in the proposed system."""
+    if style not in _STYLE:
+        raise ValueError(f"Unknown prompt style '{style}'. Use one of {PROMPT_STYLES}.")
+    instructions, tail = _STYLE[style]
     rule = _EVIDENCE_RULE if evidence_text else _NO_EVIDENCE_RULE
-    system = VERIFIER_INSTRUCTIONS.format(evidence_rule=rule)
+    system = instructions.format(evidence_rule=rule)
     user = f"Question: {question}\nAnswer: {answer}\n"
     if evidence_text:
         user = f"Evidence:\n{evidence_text}\n\n" + user
-    user += "Your judgement (FACTUAL, HALLUCINATED or UNSURE):"
+    user += tail
     return [{"role": "system", "content": system}, {"role": "user", "content": user}]

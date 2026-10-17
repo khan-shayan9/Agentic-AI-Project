@@ -68,6 +68,10 @@ python -m medverify baseline --model llama --split test --knowledge source --nam
 #   add --unsure to allow the "2 = not sure" option
 
 # Proposed system
+for s in digits words reason; do                                               # pick the verifier prompt on val
+  python -m medverify pipeline --split val --evidence pubmed --prompt $s --name sysA-val-$s
+done
+python -m medverify compare results/runs/sysA-val-digits results/runs/sysA-val-words results/runs/sysA-val-reason
 python -m medverify pipeline --split val  --evidence pubmed --name sysA-val    # setting A: source blocked
 python -m medverify tune results/runs/sysA-val --min-coverage 0.7              # pick the vote rule on val
 python -m medverify pipeline --split test --evidence pubmed --min-agree 2 --name sysA-test
@@ -85,7 +89,7 @@ Each run folder holds `config.json`, the raw outputs (`predictions.jsonl` or `st
 - **Splits:** from the 1,000 human-annotated rows (`pqa_labeled`). Test = 300 rows (100 easy, 100 medium, 100 hard); val = 100 rows (only for tuning); dev = 20 rows (debugging). Fixed seed 42.
 - **Two items per row:** each row's true and hallucinated answers are both judged (600 test items, half hallucinated). The authors' code shows one random answer per row; ours gives the same balance without randomness.
 - **Faithful baseline:** prompts, temperature (0.3) and top_p (0.95) match the MedHallu code. The paper's main table uses a version without "not sure" that is not in the released code; ours removes those sentences from their prompt.
-- **Parsing:** the authors' parser reads any reply containing "not" as hallucinated, so "not sure" became 1. We use a stricter parser and count unparseable replies separately. `parsing.parse_authors` is kept for comparison. Verifiers answer with a word (FACTUAL, HALLUCINATED or UNSURE): in the first dev run Phi-4-mini often replied "2" (unsure) while its own explanation said the answer was wrong, so digit labels were unreliable for it.
+- **Parsing:** the authors' parser reads any reply containing "not" as hallucinated, so "not sure" became 1. We use a stricter parser and count unparseable replies separately. `parsing.parse_authors` is kept for comparison. Verifier prompt styles (`--prompt`): `digits` (0/1/2), `words` (FACTUAL/HALLUCINATED/UNSURE) and `reason` (a short check, then `Verdict: ...`). On the 40 dev answers, digits made Phi-4-mini reply "2" while its own explanation called the answer wrong, and words made the models rarely say HALLUCINATED, so the style is chosen on the validation split with `compare`.
 - **Leakage control:** each question's source PubMed ID comes from PubMedQA. The evidence agent drops that PMID and any abstract sharing 30% or more of its 8-word sequences.
 - **Metrics:** precision, recall and F1 with "hallucinated" as the positive class, after dropping "not sure" (as in MedHallu), overall and per difficulty, with a bootstrap 95% interval. Also coverage, accuracy on answered items, risk-coverage curve, error overlap between verifiers, tokens and latency.
 

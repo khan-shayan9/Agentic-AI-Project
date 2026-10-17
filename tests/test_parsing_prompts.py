@@ -66,3 +66,35 @@ def test_verifier_prompt_asks_for_words_not_digits():
     assert "FACTUAL, HALLUCINATED or UNSURE" in msgs[0]["content"]
     assert msgs[1]["content"].endswith("(FACTUAL, HALLUCINATED or UNSURE):")
     assert "single digit" not in msgs[0]["content"]
+
+
+def test_unsure_words_match_whole_words_only():
+    assert parse_verdict("The passage supports it, so it is factual.") == 0
+    assert parse_verdict("I will pass on this one") == 2
+
+
+def test_parse_final_verdict_uses_the_last_verdict_line():
+    from medverify.parsing import parse_final_verdict, parse_for_style
+
+    reply = "The answer says X, but the evidence says Y. A factual answer would say Y.\nVerdict: HALLUCINATED"
+    assert parse_final_verdict(reply) == 1
+    assert parse_final_verdict("Verdict: UNSURE\n...thinking again...\nVerdict: FACTUAL") == 0
+    assert parse_final_verdict("FACTUAL") == 0  # falls back to the label parser
+    assert parse_for_style("2", "digits") == 2
+    assert parse_for_style("HALLUCINATED", "words") == 1
+    assert parse_for_style("ok.\nVerdict: **Hallucinated**", "reason") == 1
+
+
+def test_three_prompt_styles():
+    import pytest
+
+    from medverify.prompts import PROMPT_STYLES
+
+    assert PROMPT_STYLES == ("digits", "words", "reason")
+    digits = verifier_messages("Q?", "A.", None, style="digits")
+    reason = verifier_messages("Q?", "A.", "[1] PMID 1: T\nbody", style="reason")
+    assert "single digit: 0, 1 or 2" in digits[0]["content"] and digits[1]["content"].endswith("(0, 1 or 2):")
+    assert "Verdict: HALLUCINATED" in reason[0]["content"] and "not a reason to be unsure" in reason[0]["content"]
+    assert "PubMed evidence" in reason[0]["content"]
+    with pytest.raises(ValueError):
+        verifier_messages("Q?", "A.", None, style="poem")

@@ -22,8 +22,8 @@ from tqdm import tqdm
 from .data import append_jsonl, read_jsonl
 from .llm import ChatModel
 from .metrics import aggregate_votes
-from .parsing import parse_label
-from .prompts import format_evidence, verifier_messages
+from .parsing import parse_for_style
+from .prompts import DEFAULT_PROMPT_STYLE, format_evidence, verifier_messages
 from .schemas import Evidence, Item, Verdict, VerificationState
 from .tools.pubmed import PubMedSearch, keyword_queries
 
@@ -68,6 +68,7 @@ def verify_item(
     pubmed: Optional[PubMedSearch],
     k: int,
     min_agree: int,
+    prompt_style: str = DEFAULT_PROMPT_STYLE,
 ) -> VerificationState:
     state = VerificationState(item_id=item.item_id, evidence_mode=evidence_mode)
     state.evidence = gather_evidence(item, evidence_mode, pubmed, k, state)
@@ -76,10 +77,10 @@ def verify_item(
 
     for name, model in verifiers.items():
         try:
-            res = model.chat(verifier_messages(item.question, item.answer, evidence_text))
+            res = model.chat(verifier_messages(item.question, item.answer, evidence_text, style=prompt_style))
         except Exception as err:  # re-raised with the verifier name
             raise VerifierCallError(name, model, err) from err
-        code = parse_label(res.text)
+        code = parse_for_style(res.text, prompt_style)
         state.verdicts.append(
             Verdict(
                 item_id=item.item_id,
@@ -109,6 +110,7 @@ def run_pipeline(
     k: int = 3,
     min_agree: int = 2,
     out_path: Path | None = None,
+    prompt_style: str = DEFAULT_PROMPT_STYLE,
 ) -> list[VerificationState]:
     done: dict[str, VerificationState] = {}
     if out_path and Path(out_path).exists():
@@ -119,7 +121,7 @@ def run_pipeline(
         if item.item_id in done:
             states.append(done[item.item_id])
             continue
-        state = verify_item(item, verifiers, evidence_mode, pubmed, k, min_agree)
+        state = verify_item(item, verifiers, evidence_mode, pubmed, k, min_agree, prompt_style)
         states.append(state)
         if out_path:
             append_jsonl(out_path, state)

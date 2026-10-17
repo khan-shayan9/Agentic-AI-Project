@@ -21,6 +21,7 @@ from dotenv import load_dotenv
 from . import data as D
 from .llm import DEFAULT_VERIFIERS
 from .metrics import error_overlap, evaluate, format_table, risk_coverage
+from .prompts import DEFAULT_PROMPT_STYLE, PROMPT_STYLES
 from .schemas import Verdict, VerificationState
 
 DATA_DIR = Path("data/processed")
@@ -89,16 +90,19 @@ def cmd_pipeline(args):
     states_path = out / "states.jsonl"
     old_config = out / "config.json"
     if states_path.exists() and states_path.stat().st_size > 0 and old_config.exists():
-        old_models = json.loads(old_config.read_text()).get("models")
-        if old_models and old_models != models:
+        old = json.loads(old_config.read_text())
+        old_setup = (old.get("models"), old.get("prompt", "words"))
+        if old.get("models") and old_setup != (models, args.prompt):
             raise SystemExit(
-                f"{out} already holds results from other verifiers ({old_models}). "
-                "Use a new --name so the two runs are not mixed."
+                f"{out} already holds results from other verifiers or another prompt "
+                f"({old_setup[0]}, prompt '{old_setup[1]}'). Use a new --name so the two runs are not mixed."
             )
     config = vars(args) | {"items": len(items), "models": models}
     old_config.write_text(json.dumps(config, indent=2, default=str))
     try:
-        states = run_pipeline(items, verifiers, args.evidence, pubmed, args.k, args.min_agree, states_path)
+        states = run_pipeline(
+            items, verifiers, args.evidence, pubmed, args.k, args.min_agree, states_path, prompt_style=args.prompt
+        )
     except VerifierCallError as err:
         done = len(D.read_jsonl(states_path, VerificationState)) if states_path.exists() else 0
         hint = ""
@@ -166,6 +170,30 @@ def cmd_overlap(args):
         Path(args.out).write_text(json.dumps(report, indent=2))
 
 
+def cmd_compare(args):
+    """One table across pipeline runs: the vote and each verifier, plus how often each said 0/1/2."""
+    from collections import Counter
+
+    from .pipeline import final_verdicts, verifier_verdicts
+
+    header = f"{'who':<15}{'cover':>7}{'F1':>7}{'sel.acc':>9}   answers 0 / 1 / 2 / unreadable"
+    lines = []
+    for run in args.runs:
+        config, items, states, _ = _load_run(run)
+        if states is None:
+            raise SystemExit(f"{run} is not a pipeline run")
+        lines += ["", f"== {Path(run).name}  (prompt: {config.get('prompt', 'words')}, {len(states)} items)", header]
+        who = {"vote": final_verdicts(states)} | verifier_verdicts(states)
+        for name, verdicts in who.items():
+            m = evaluate(items, verdicts, n_boot=0)["overall"]
+            c = Counter(v.verdict for v in verdicts)
+            lines.append(
+                f"{name:<15}{m['coverage']:>7.3f}{m['f1']:>7.3f}{m['selective_accuracy']:>9.3f}"
+                f"   {c[0]} / {c[1]} / {c[2]} / {c[None]}"
+            )
+    print("\n".join(lines))
+
+
 def cmd_tune(args):
     from .pipeline import final_verdicts
 
@@ -213,6 +241,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--split", default="dev", choices=["dev", "val", "test"])
     s.add_argument("--k", type=int, default=3, help="evidence abstracts per item")
     s.add_argument("--min-agree", type=int, default=2)
+    s.add_argument("--prompt", default=DEFAULT_PROMPT_STYLE, choices=list(PROMPT_STYLES),
+                   help="verifier prompt style; choose it on the val split")
     s.add_argument("--temperature", type=float, default=0.0)
     s.add_argument("--limit", type=int)
     s.add_argument("--name")
@@ -227,6 +257,10 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("runs", nargs="+")
     s.add_argument("--out")
     s.set_defaults(func=cmd_overlap)
+
+    s = sub.add_parser("compare", help="compare pipeline runs (e.g. prompt styles on val)")
+    s.add_argument("runs", nargs="+")
+    s.set_defaults(func=cmd_compare)
 
     s = sub.add_parser("tune", help="choose the vote rule on val")
     s.add_argument("run")
