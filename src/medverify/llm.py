@@ -64,7 +64,9 @@ MODEL_ALIASES = {
 }
 
 # The three verifiers used by default: one model family each (Meta, Mistral AI, Microsoft).
-DEFAULT_VERIFIERS = ("llama", "mistral", "phi")
+# Mistral runs locally (Mistral 7B) because the free Mistral API allowed 0 requests/minute on
+# our account (Oct 2026); "mistral" (the API) is still supported for anyone whose key works.
+DEFAULT_VERIFIERS = ("llama", "mistral-local", "phi")
 
 # Model family of each alias, used for the independence analysis.
 MODEL_FAMILY = {"llama": "Meta Llama", "mistral": "Mistral", "mistral-local": "Mistral", "phi": "Microsoft Phi", "gptoss": "OpenAI gpt-oss"}

@@ -9,7 +9,7 @@ AI4015 Agentic AI semester project. Base paper: MedHallu (Pandit et al., EMNLP 2
 Given a medical question and an answer, the system decides whether the answer is **factual (0)**, **hallucinated (1)**, or says **not sure (2)**.
 
 - **Baseline:** one LLM judges each answer, exactly as in the MedHallu paper (authors' prompt, settings and metric).
-- **Proposed system:** an evidence agent searches PubMed (with the question's own source abstract blocked). Three verifiers from different model families (Llama 3.1 8B from Meta, Mistral Small 4 from Mistral AI, Phi-4-mini from Microsoft) then judge separately, and a vote rule accepts, rejects or abstains.
+- **Proposed system:** an evidence agent searches PubMed (with the question's own source abstract blocked). Three verifiers from different model families (Llama 3.1 8B from Meta, Mistral 7B from Mistral AI, Phi-4-mini from Microsoft), all running locally, then judge separately with a word label (FACTUAL, HALLUCINATED or UNSURE), and a vote rule accepts, rejects or abstains.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the diagram and the data contracts.
 
@@ -36,7 +36,7 @@ docs/             architecture
 
 ### Option A: Google Colab (recommended, free GPU)
 
-Open `notebooks/phase1_baseline_colab.ipynb` in Colab, choose a T4 GPU, add `MISTRAL_API_KEY` and `NCBI_EMAIL` in Colab's Secrets panel, and run the cells in order.
+Open `notebooks/phase1_baseline_colab.ipynb` in Colab, choose a T4 GPU, add `NCBI_EMAIL` in Colab's Secrets panel, and run the cells in order.
 
 ### Option B: your own computer
 
@@ -46,17 +46,16 @@ pip install -e ".[dev]"
 cp .env.example .env                                # then fill in your keys
 ```
 
-Install [Ollama](https://ollama.com/download) and run `ollama pull llama3.1:8b` and `ollama pull phi4-mini`. Together they need about 8 GB of free memory; without a GPU they are slow, so Colab is easier.
+Install [Ollama](https://ollama.com/download) and run `ollama pull llama3.1:8b`, `ollama pull mistral:7b` and `ollama pull phi4-mini`. Together they need about 12 GB of free memory; without a GPU they are slow, so Colab is easier.
 
 ### Free accounts (only for the proposed system)
 
 | Service | Used for | Key in `.env` | Free limit |
 | --- | --- | --- | --- |
-| Ollama (local) | Llama 3.1 8B (baseline and verifier) and Phi-4-mini (verifier) | none | no limit |
-| [Mistral](https://console.mistral.ai/api-keys) | Mistral Small 4 verifier (`mistral-small-2603`, reasoning off) | `MISTRAL_API_KEY` | 1 request/second and 20,000 tokens/minute (Studio key, free plan) |
+| Ollama (local) | Llama 3.1 8B (baseline and verifier), Mistral 7B and Phi-4-mini (verifiers) | none | no limit |
 | [NCBI](https://www.ncbi.nlm.nih.gov/account/settings/) | PubMed evidence | `NCBI_EMAIL`, optional `NCBI_API_KEY` | 3 requests/s, 10 with key |
 
-Mistral's limits (1 request per second, 20,000 tokens per minute) are the tightest; the client paces both. If the free Mistral API keeps returning error 429, use `--verifiers llama,mistral-local,phi` (Mistral 7B through Ollama, same model family; run `ollama pull mistral:7b` first). The Colab notebook checks the key and switches by itself. Every reply is cached and every run resumes where it stopped, so long runs can be split across sessions. Groq (gpt-oss-120b) is supported as an optional extra verifier (`--verifiers llama,mistral,phi,gptoss`) if your account works there.
+We first planned Mistral Small through Mistral's free API, but our free account allowed 0 requests per minute (error 429), so the Mistral verifier runs locally. The API version still works with `--verifiers llama,mistral,phi` and a `MISTRAL_API_KEY` (model `mistral-small-2603`, paced to its free limits of 1 request/second and 20,000 tokens/minute). Every reply is cached and every run resumes where it stopped, so long runs can be split across sessions. Groq (gpt-oss-120b) is supported as an optional extra verifier (`--verifiers llama,mistral,phi,gptoss`) if your account works there.
 
 ## Commands
 
@@ -86,7 +85,7 @@ Each run folder holds `config.json`, the raw outputs (`predictions.jsonl` or `st
 - **Splits:** from the 1,000 human-annotated rows (`pqa_labeled`). Test = 300 rows (100 easy, 100 medium, 100 hard); val = 100 rows (only for tuning); dev = 20 rows (debugging). Fixed seed 42.
 - **Two items per row:** each row's true and hallucinated answers are both judged (600 test items, half hallucinated). The authors' code shows one random answer per row; ours gives the same balance without randomness.
 - **Faithful baseline:** prompts, temperature (0.3) and top_p (0.95) match the MedHallu code. The paper's main table uses a version without "not sure" that is not in the released code; ours removes those sentences from their prompt.
-- **Parsing:** the authors' parser reads any reply containing "not" as hallucinated, so "not sure" became 1. We use a stricter parser and count unparseable replies separately. `parsing.parse_authors` is kept for comparison.
+- **Parsing:** the authors' parser reads any reply containing "not" as hallucinated, so "not sure" became 1. We use a stricter parser and count unparseable replies separately. `parsing.parse_authors` is kept for comparison. Verifiers answer with a word (FACTUAL, HALLUCINATED or UNSURE): in the first dev run Phi-4-mini often replied "2" (unsure) while its own explanation said the answer was wrong, so digit labels were unreliable for it.
 - **Leakage control:** each question's source PubMed ID comes from PubMedQA. The evidence agent drops that PMID and any abstract sharing 30% or more of its 8-word sequences.
 - **Metrics:** precision, recall and F1 with "hallucinated" as the positive class, after dropping "not sure" (as in MedHallu), overall and per difficulty, with a bootstrap 95% interval. Also coverage, accuracy on answered items, risk-coverage curve, error overlap between verifiers, tokens and latency.
 

@@ -19,7 +19,7 @@ flowchart LR
     subgraph SYS[Proposed system]
         EV[Evidence agent<br/>PubMed search<br/>G2: source PMID + near copies blocked]
         V1[Verifier: Llama 3.1 8B<br/>Meta, local Ollama]
-        V2[Verifier: Mistral Small<br/>Mistral, free API]
+        V2[Verifier: Mistral 7B<br/>Mistral AI, local Ollama]
         V3[Verifier: Phi-4-mini<br/>Microsoft, local Ollama]
         DEC[Decision step<br/>G3: vote with abstain<br/>threshold tuned on val]
         EV --> V1 & V2 & V3

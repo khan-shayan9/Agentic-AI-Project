@@ -38,6 +38,7 @@ def workspace(tmp_path, monkeypatch, rows):
     models = {
         "llama": FakeModel("fake-llama", answer_reader(4)),
         "mistral": FakeModel("fake-mistral", answer_reader(5)),
+        "mistral-local": FakeModel("fake-mistral-local", answer_reader(5)),
         "phi": FakeModel("fake-phi", answer_reader(7)),
     }
     monkeypatch.setattr(llm, "make_model", lambda name, **kw: models[name])
@@ -69,7 +70,7 @@ def test_cli_full_workflow(workspace, capsys):
     cli.main(["tune", "results/runs/p1", "--min-coverage", "0.5"])
     cli.main(["overlap", "results/runs/p1", "--out", str(tmp / "overlap.json")])
     overlap = json.loads((tmp / "overlap.json").read_text())
-    assert set(overlap) == {"llama vs mistral", "llama vs phi", "mistral vs phi"}
+    assert set(overlap) == {"llama vs mistral-local", "llama vs phi", "mistral-local vs phi"}
     out = capsys.readouterr().out
     assert "overall" in out and "chosen" in out
 
@@ -124,7 +125,7 @@ def test_pipeline_stops_cleanly_when_a_verifier_keeps_failing(workspace):
     models["mistral"] = FakeModel("fake-mistral", always_rate_limited)
     models["mistral"].provider = "mistral"
     with pytest.raises(SystemExit) as stop:
-        cli.main(["pipeline", "--split", "dev", "--name", "rl"])
+        cli.main(["pipeline", "--split", "dev", "--verifiers", "llama,mistral,phi", "--name", "rl"])
     message = str(stop.value)
     assert "verifier 'mistral'" in message and "0 of 6 items were saved" in message
     assert "mistral-local" in message
@@ -137,13 +138,12 @@ def test_pipeline_stops_cleanly_when_a_verifier_keeps_failing(workspace):
 
 def test_pipeline_refuses_to_mix_verifier_sets(workspace):
     tmp, models = workspace
-    models["mistral-local"] = FakeModel("fake-mistral-local", answer_reader(6))
     cli.main(["prepare", "--test-per-level", "2", "--val-size", "6", "--dev-size", "3"])
-    cli.main(["pipeline", "--split", "dev", "--name", "mix"])
+    cli.main(["pipeline", "--split", "dev", "--name", "mix"])  # default: llama, mistral-local, phi
     with pytest.raises(SystemExit, match="new --name"):
-        cli.main(["pipeline", "--split", "dev", "--verifiers", "llama,mistral-local,phi", "--name", "mix"])
-    cli.main(["pipeline", "--split", "dev", "--verifiers", "llama,mistral-local,phi", "--name", "mix-local"])
-    assert (tmp / "results/runs/mix-local/metrics.json").exists()
+        cli.main(["pipeline", "--split", "dev", "--verifiers", "llama,mistral,phi", "--name", "mix"])
+    cli.main(["pipeline", "--split", "dev", "--verifiers", "llama,mistral,phi", "--name", "mix-api"])
+    assert (tmp / "results/runs/mix-api/metrics.json").exists()
 
 
 def test_mistral_local_alias():

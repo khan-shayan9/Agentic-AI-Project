@@ -1,4 +1,4 @@
-from medverify.parsing import parse_authors, parse_verdict
+from medverify.parsing import parse_authors, parse_label, parse_verdict
 from medverify.prompts import AUTHORS_SYSTEM_PROMPT, FORCED_SYSTEM_PROMPT, baseline_messages, verifier_messages
 
 
@@ -45,3 +45,24 @@ def test_verifier_prompt_includes_evidence_only_when_given():
     without = verifier_messages("Q?", "A.", None)
     assert "Evidence:" in with_ev[1]["content"] and "PubMed evidence" in with_ev[0]["content"]
     assert "Evidence:" not in without[1]["content"] and "own medical knowledge" in without[0]["content"]
+
+
+def test_parse_label_reads_word_verdicts():
+    assert parse_label("HALLUCINATED") == 1
+    assert parse_label("**Factual**") == 0
+    assert parse_label("Unsure.") == 2
+    # the Phi pattern from the dev run: a label word first, then an explanation that mentions other words
+    assert parse_label("HALLUCINATED\n\nThe evidence does not say this, so it is not factual.") == 1
+    assert parse_label("FACTUAL\n\nNothing here is hallucinated.") == 0
+    assert parse_label("After checking the evidence, my verdict: hallucinated") == 1
+    assert parse_label("Judgement: FACTUAL") == 0
+    assert parse_label("1") == 1  # digits still work (fallback)
+    assert parse_label("") is None
+    assert parse_label("I cannot tell from this.") is None
+
+
+def test_verifier_prompt_asks_for_words_not_digits():
+    msgs = verifier_messages("Q?", "A.", None)
+    assert "FACTUAL, HALLUCINATED or UNSURE" in msgs[0]["content"]
+    assert msgs[1]["content"].endswith("(FACTUAL, HALLUCINATED or UNSURE):")
+    assert "single digit" not in msgs[0]["content"]

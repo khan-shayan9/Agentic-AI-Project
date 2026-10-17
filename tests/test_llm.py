@@ -60,7 +60,7 @@ def test_real_client_calls_caches_and_reads_usage(server, tmp_path):
 
 def test_resolve_model_and_missing_key(monkeypatch):
     assert llm.resolve_model("phi") == ("ollama", "phi4-mini")
-    assert llm.DEFAULT_VERIFIERS == ("llama", "mistral", "phi")
+    assert llm.DEFAULT_VERIFIERS == ("llama", "mistral-local", "phi")
     families = {llm.MODEL_FAMILY[name] for name in llm.DEFAULT_VERIFIERS}
     assert len(families) == 3  # one model family per verifier (condition 5)
     assert llm.resolve_model("gptoss") == ("groq", "openai/gpt-oss-120b")

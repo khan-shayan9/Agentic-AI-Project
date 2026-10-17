@@ -47,3 +47,26 @@ def parse_verdict(text: str, allow_unsure: bool = True) -> Optional[int]:
     if "factual" in lowered and "non-factual" not in lowered and "not factual" not in lowered:
         return 0
     return None
+
+
+_LABELS = {"factual": 0, "hallucinated": 1, "unsure": 2}
+_LEADING_LABEL = re.compile(r"^[\s*_`'\"#>:\-]*(factual|hallucinated|unsure)\b", flags=re.IGNORECASE)
+_STATED_LABEL = re.compile(
+    r"(?:verdict|judgement|judgment|answer|label)\s*(?:is)?\s*[:=\-]?\s*[*_`'\"]*(factual|hallucinated|unsure)\b",
+    flags=re.IGNORECASE,
+)
+
+
+def parse_label(text: str) -> Optional[int]:
+    """Verifier replies (FACTUAL / HALLUCINATED / UNSURE) -> 0 / 1 / 2.
+
+    Reads the label the reply starts with, else a stated "Verdict: X", else falls back to
+    parse_verdict (digits and keywords). None when nothing usable is found.
+    """
+    if text is None:
+        return None
+    cleaned = _THINK.sub(" ", text).strip()
+    match = _LEADING_LABEL.search(cleaned) or _STATED_LABEL.search(cleaned)
+    if match:
+        return _LABELS[match.group(1).lower()]
+    return parse_verdict(cleaned, allow_unsure=True)

@@ -106,7 +106,7 @@ def cmd_pipeline(args):
             hint = (
                 "\nThe Mistral API keeps refusing calls (free-plan limit). Check your limits at "
                 "https://admin.mistral.ai, wait and re-run (finished items are kept), or use the local "
-                "fallback: ollama pull mistral:7b, then --verifiers llama,mistral-local,phi with a new --name."
+                "verifier (the default): ollama pull mistral:7b, then --verifiers llama,mistral-local,phi with a new --name."
             )
         raise SystemExit(f"Run stopped: {err}\n{done} of {len(items)} items were saved in {states_path}.{hint}")
     _score(out, items, final_verdicts(states))

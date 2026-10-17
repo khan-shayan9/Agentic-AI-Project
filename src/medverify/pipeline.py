@@ -22,7 +22,7 @@ from tqdm import tqdm
 from .data import append_jsonl, read_jsonl
 from .llm import ChatModel
 from .metrics import aggregate_votes
-from .parsing import parse_verdict
+from .parsing import parse_label
 from .prompts import format_evidence, verifier_messages
 from .schemas import Evidence, Item, Verdict, VerificationState
 from .tools.pubmed import PubMedSearch, keyword_queries
@@ -79,7 +79,7 @@ def verify_item(
             res = model.chat(verifier_messages(item.question, item.answer, evidence_text))
         except Exception as err:  # re-raised with the verifier name
             raise VerifierCallError(name, model, err) from err
-        code = parse_verdict(res.text, allow_unsure=True)
+        code = parse_label(res.text)
         state.verdicts.append(
             Verdict(
                 item_id=item.item_id,

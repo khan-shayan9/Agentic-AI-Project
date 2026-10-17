@@ -75,12 +75,15 @@ def baseline_messages(
 # ------------------------------------------------------------------ verifier
 
 VERIFIER_INSTRUCTIONS = """You are one of several independent reviewers checking a medical answer.
-Decide whether the answer to the question is factual (0) or contains hallucinated or wrong information (1).
-Hallucinations can be: misreading the question, leaving out the key finding, wrong biological mechanism,
+Decide whether the answer to the question is FACTUAL or HALLUCINATED (contains hallucinated or wrong information).
+Hallucinations can be: misreading the question, leaving out the key finding, a wrong biological mechanism,
 or invented methods, numbers or outcomes.
 {evidence_rule}
-If you cannot decide with reasonable confidence, reply 2.
-Reply with a single digit: 0, 1 or 2. Nothing else."""
+If you cannot decide with reasonable confidence, say UNSURE.
+Reply with exactly one word: FACTUAL, HALLUCINATED or UNSURE. Nothing else."""
+
+# Word labels instead of 0/1/2: in the Phase 1 dev run, Phi-4-mini often replied "2" while its own
+# explanation said the answer was wrong, so digits were not a reliable way to read its judgement.
 
 _EVIDENCE_RULE = "Use the numbered PubMed evidence below where it is relevant; it may be incomplete or off-topic."
 _NO_EVIDENCE_RULE = "Use your own medical knowledge."
@@ -103,5 +106,5 @@ def verifier_messages(question: str, answer: str, evidence_text: Optional[str] =
     user = f"Question: {question}\nAnswer: {answer}\n"
     if evidence_text:
         user = f"Evidence:\n{evidence_text}\n\n" + user
-    user += "Your judgement (0, 1 or 2):"
+    user += "Your judgement (FACTUAL, HALLUCINATED or UNSURE):"
     return [{"role": "system", "content": system}, {"role": "user", "content": user}]
