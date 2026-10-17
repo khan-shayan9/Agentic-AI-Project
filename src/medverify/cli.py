@@ -1,0 +1,221 @@
+"""Command line entry point:  python -m medverify <command> ...
+
+  prepare   download MedHallu, attach PubMed IDs, write dev/val/test splits
+  baseline  run the single-LLM MedHallu baseline on a split
+  pipeline  run the multi-agent system (verifiers + optional PubMed evidence)
+  evaluate  score a run (F1 per difficulty, coverage, cost)
+  overlap   error overlap between verifiers (independence check)
+  tune      pick the vote rule on the validation split
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from datetime import datetime
+from itertools import combinations
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+from . import data as D
+from .llm import DEFAULT_VERIFIERS
+from .metrics import error_overlap, evaluate, format_table, risk_coverage
+from .schemas import Verdict, VerificationState
+
+DATA_DIR = Path("data/processed")
+RUNS_DIR = Path("results/runs")
+
+
+def _run_dir(name: str | None, prefix: str) -> Path:
+    name = name or f"{prefix}-{datetime.now():%Y%m%d-%H%M%S}"
+    path = RUNS_DIR / name
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _items(split: str, limit: int | None):
+    items = D.load_split_items(DATA_DIR, split)
+    return items[:limit] if limit else items
+
+
+# ----------------------------------------------------------------- commands
+
+def cmd_prepare(args):
+    try:
+        rows = D.load_medhallu(args.subset)
+    except Exception as err:  # network, or Hugging Face asking for a login
+        raise SystemExit(
+            f"Could not download MedHallu ({err}).\n"
+            "Check your internet connection. If Hugging Face asks you to log in, create a free "
+            "token at https://huggingface.co/settings/tokens and put HF_TOKEN=... in .env."
+        )
+    print(f"Loaded {len(rows)} MedHallu rows ({args.subset}).")
+    pubmedqa = D.load_pubmedqa_labeled(Path("data/raw/ori_pqal.json"))
+    stats = D.attach_pubids(rows, pubmedqa)
+    print(f"PubMed ID mapping: {stats}")
+    splits = D.make_splits(rows, args.test_per_level, args.val_size, args.dev_size, args.seed)
+    for name, split_rows in splits.items():
+        D.write_jsonl(DATA_DIR / f"{name}.jsonl", split_rows)
+    summary = {"subset": args.subset, "seed": args.seed, "pubid_mapping": stats, "splits": D.split_summary(splits)}
+    (DATA_DIR / "split_summary.json").write_text(json.dumps(summary, indent=2))
+    print(json.dumps(summary, indent=2))
+
+
+def cmd_baseline(args):
+    from .baseline import run_baseline
+    from .llm import make_model
+
+    items = _items(args.split, args.limit)
+    model = make_model(args.model)
+    out = _run_dir(args.name, f"baseline-{args.model}-{args.knowledge}-{args.split}")
+    config = vars(args) | {"provider": model.provider, "model_id": model.model, "items": len(items)}
+    (out / "config.json").write_text(json.dumps(config, indent=2, default=str))
+    verdicts = run_baseline(items, model, args.knowledge, args.unsure, out / "predictions.jsonl")
+    _score(out, items, verdicts)
+
+
+def cmd_pipeline(args):
+    from .llm import make_model
+    from .pipeline import final_verdicts, run_pipeline
+    from .tools.pubmed import PubMedSearch
+
+    items = _items(args.split, args.limit)
+    names = [n.strip() for n in args.verifiers.split(",") if n.strip()]
+    verifiers = {n: make_model(n, temperature=args.temperature) for n in names}
+    pubmed = PubMedSearch() if args.evidence == "pubmed" else None
+    out = _run_dir(args.name, f"pipeline-{args.evidence}-{args.split}")
+    config = vars(args) | {"items": len(items), "models": {n: m.model for n, m in verifiers.items()}}
+    (out / "config.json").write_text(json.dumps(config, indent=2, default=str))
+    states = run_pipeline(items, verifiers, args.evidence, pubmed, args.k, args.min_agree, out / "states.jsonl")
+    _score(out, items, final_verdicts(states))
+
+
+def _load_run(run: Path):
+    run = Path(run)
+    config = json.loads((run / "config.json").read_text())
+    items = _items(config["split"], config.get("limit"))
+    if (run / "states.jsonl").exists():
+        return config, items, D.read_jsonl(run / "states.jsonl", VerificationState), None
+    return config, items, None, D.read_jsonl(run / "predictions.jsonl", Verdict)
+
+
+def _score(out: Path, items, verdicts):
+    result = evaluate(items, verdicts)
+    (out / "metrics.json").write_text(json.dumps(result, indent=2))
+    print(format_table(result))
+    print(f"Saved to {out}")
+
+
+def cmd_evaluate(args):
+    from .pipeline import agreement_confidence, final_verdicts, verifier_verdicts
+
+    config, items, states, verdicts = _load_run(args.run)
+    if states is None:
+        _score(Path(args.run), items, verdicts)
+        return
+    _score(Path(args.run), items, final_verdicts(states, args.min_agree))
+    for name, vs in verifier_verdicts(states).items():
+        print(f"\n-- verifier {name} on its own --")
+        print(format_table(evaluate(items, vs, n_boot=0)))
+    curve = risk_coverage(items, agreement_confidence(states))
+    (Path(args.run) / "risk_coverage.json").write_text(json.dumps(curve, indent=2))
+
+
+def cmd_overlap(args):
+    from .pipeline import verifier_verdicts
+
+    sources: dict[str, list[Verdict]] = {}
+    items = None
+    for run in args.runs:
+        config, run_items, states, verdicts = _load_run(run)
+        items = items or run_items
+        if states is not None:
+            sources.update(verifier_verdicts(states))
+        else:
+            sources[Path(run).name] = verdicts
+    report = {}
+    for a, b in combinations(sorted(sources), 2):
+        report[f"{a} vs {b}"] = error_overlap(items, sources[a], sources[b])
+    print(json.dumps(report, indent=2))
+    if args.out:
+        Path(args.out).write_text(json.dumps(report, indent=2))
+
+
+def cmd_tune(args):
+    from .pipeline import final_verdicts
+
+    config, items, states, _ = _load_run(args.run)
+    if states is None:
+        raise SystemExit("tune needs a pipeline run (states.jsonl)")
+    n_verifiers = max(len(s.verdicts) for s in states)
+    rows, best = [], None
+    for min_agree in range(1, n_verifiers + 1):
+        m = evaluate(items, final_verdicts(states, min_agree), n_boot=0)["overall"]
+        rows.append({"min_agree": min_agree, "coverage": m["coverage"], "selective_accuracy": m["selective_accuracy"], "f1": m["f1"]})
+        if m["coverage"] >= args.min_coverage and (best is None or m["selective_accuracy"] > best["selective_accuracy"]):
+            best = rows[-1]
+    print(json.dumps({"candidates": rows, "chosen": best, "min_coverage": args.min_coverage}, indent=2))
+    if config.get("split") != "val":
+        print("Warning: tune on the val split, then apply the chosen rule to test.")
+
+
+# ------------------------------------------------------------------- parser
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="medverify")
+    sub = p.add_subparsers(dest="command", required=True)
+
+    s = sub.add_parser("prepare", help="download data and make splits")
+    s.add_argument("--subset", default="pqa_labeled")
+    s.add_argument("--test-per-level", type=int, default=100)
+    s.add_argument("--val-size", type=int, default=100)
+    s.add_argument("--dev-size", type=int, default=20)
+    s.add_argument("--seed", type=int, default=42)
+    s.set_defaults(func=cmd_prepare)
+
+    s = sub.add_parser("baseline", help="single-LLM MedHallu baseline")
+    s.add_argument("--model", default="llama", help="llama | mistral | phi | provider:model")
+    s.add_argument("--split", default="dev", choices=["dev", "val", "test"])
+    s.add_argument("--knowledge", default="none", choices=["none", "source"])
+    s.add_argument("--unsure", action="store_true", help="allow the '2 = not sure' answer")
+    s.add_argument("--limit", type=int)
+    s.add_argument("--name")
+    s.set_defaults(func=cmd_baseline)
+
+    s = sub.add_parser("pipeline", help="multi-agent verification")
+    s.add_argument("--verifiers", default=",".join(DEFAULT_VERIFIERS), help="comma-separated model names")
+    s.add_argument("--evidence", default="none", choices=["none", "pubmed", "source"])
+    s.add_argument("--split", default="dev", choices=["dev", "val", "test"])
+    s.add_argument("--k", type=int, default=3, help="evidence abstracts per item")
+    s.add_argument("--min-agree", type=int, default=2)
+    s.add_argument("--temperature", type=float, default=0.0)
+    s.add_argument("--limit", type=int)
+    s.add_argument("--name")
+    s.set_defaults(func=cmd_pipeline)
+
+    s = sub.add_parser("evaluate", help="score a finished run")
+    s.add_argument("run")
+    s.add_argument("--min-agree", type=int, help="re-apply a different vote rule")
+    s.set_defaults(func=cmd_evaluate)
+
+    s = sub.add_parser("overlap", help="error overlap between verifiers")
+    s.add_argument("runs", nargs="+")
+    s.add_argument("--out")
+    s.set_defaults(func=cmd_overlap)
+
+    s = sub.add_parser("tune", help="choose the vote rule on val")
+    s.add_argument("run")
+    s.add_argument("--min-coverage", type=float, default=0.7)
+    s.set_defaults(func=cmd_tune)
+    return p
+
+
+def main(argv=None):
+    load_dotenv()
+    args = build_parser().parse_args(argv)
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()

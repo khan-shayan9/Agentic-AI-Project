@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "medverify"
+version = "0.1.0"
+description = "Independent multi-agent verification of medical answers (MedHallu)"
+requires-python = ">=3.10"
+dependencies = [
+    "openai>=1.40",
+    "datasets>=2.19",
+    "pydantic>=2.6",
+    "requests>=2.31",
+    "tqdm>=4.66",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+medverify = "medverify.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

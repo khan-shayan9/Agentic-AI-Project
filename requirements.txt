@@ -1,0 +1,7 @@
+openai>=1.40
+datasets>=2.19
+pydantic>=2.6
+requests>=2.31
+tqdm>=4.66
+python-dotenv>=1.0
+pytest>=8.0
