@@ -62,7 +62,7 @@ def test_parse_label_reads_word_verdicts():
 
 
 def test_verifier_prompt_asks_for_words_not_digits():
-    msgs = verifier_messages("Q?", "A.", None)
+    msgs = verifier_messages("Q?", "A.", None, style="words")
     assert "FACTUAL, HALLUCINATED or UNSURE" in msgs[0]["content"]
     assert msgs[1]["content"].endswith("(FACTUAL, HALLUCINATED or UNSURE):")
     assert "single digit" not in msgs[0]["content"]
@@ -98,3 +98,10 @@ def test_three_prompt_styles():
     assert "PubMed evidence" in reason[0]["content"]
     with pytest.raises(ValueError):
         verifier_messages("Q?", "A.", None, style="poem")
+
+
+def test_default_prompt_style_is_reason():
+    from medverify.prompts import DEFAULT_PROMPT_STYLE
+
+    assert DEFAULT_PROMPT_STYLE == "reason"
+    assert "Verdict: HALLUCINATED" in verifier_messages("Q?", "A.", None)[0]["content"]

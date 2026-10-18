@@ -91,7 +91,7 @@ def cmd_pipeline(args):
     old_config = out / "config.json"
     if states_path.exists() and states_path.stat().st_size > 0 and old_config.exists():
         old = json.loads(old_config.read_text())
-        old_setup = (old.get("models"), old.get("prompt", "words"))
+        old_setup = (old.get("models"), old.get("prompt", "words"))  # runs before --prompt existed used words
         if old.get("models") and old_setup != (models, args.prompt):
             raise SystemExit(
                 f"{out} already holds results from other verifiers or another prompt "
@@ -182,7 +182,7 @@ def cmd_compare(args):
         config, items, states, _ = _load_run(run)
         if states is None:
             raise SystemExit(f"{run} is not a pipeline run")
-        lines += ["", f"== {Path(run).name}  (prompt: {config.get('prompt', 'words')}, {len(states)} items)", header]
+        lines += ["", f"== {Path(run).name}  (prompt: {config.get('prompt', '?')}, {len(states)} items)", header]
         who = {"vote": final_verdicts(states)} | verifier_verdicts(states)
         for name, verdicts in who.items():
             m = evaluate(items, verdicts, n_boot=0)["overall"]

@@ -89,7 +89,7 @@ Each run folder holds `config.json`, the raw outputs (`predictions.jsonl` or `st
 - **Splits:** from the 1,000 human-annotated rows (`pqa_labeled`). Test = 300 rows (100 easy, 100 medium, 100 hard); val = 100 rows (only for tuning); dev = 20 rows (debugging). Fixed seed 42.
 - **Two items per row:** each row's true and hallucinated answers are both judged (600 test items, half hallucinated). The authors' code shows one random answer per row; ours gives the same balance without randomness.
 - **Faithful baseline:** prompts, temperature (0.3) and top_p (0.95) match the MedHallu code. The paper's main table uses a version without "not sure" that is not in the released code; ours removes those sentences from their prompt.
-- **Parsing:** the authors' parser reads any reply containing "not" as hallucinated, so "not sure" became 1. We use a stricter parser and count unparseable replies separately. `parsing.parse_authors` is kept for comparison. Verifier prompt styles (`--prompt`): `digits` (0/1/2), `words` (FACTUAL/HALLUCINATED/UNSURE) and `reason` (a short check, then `Verdict: ...`). On the 40 dev answers, digits made Phi-4-mini reply "2" while its own explanation called the answer wrong, and words made the models rarely say HALLUCINATED, so the style is chosen on the validation split with `compare`.
+- **Parsing:** the authors' parser reads any reply containing "not" as hallucinated, so "not sure" became 1. We use a stricter parser and count unparseable replies separately. `parsing.parse_authors` is kept for comparison. Verifier prompt styles (`--prompt`): `digits` (0/1/2), `words` (FACTUAL/HALLUCINATED/UNSURE) and `reason` (a short check, then `Verdict: ...`). On the 40 dev answers, digits made Phi-4-mini reply "2" while its own explanation called the answer wrong, and words made the models rarely say HALLUCINATED, so the style is chosen on the validation split with `compare`. On the 200 validation answers (setting A) the vote reached F1 0.595 with digits (coverage 0.66), 0.444 with words (0.78) and 0.683 with reason (0.90), so `reason` is the default.
 - **Leakage control:** each question's source PubMed ID comes from PubMedQA. The evidence agent drops that PMID and any abstract sharing 30% or more of its 8-word sequences.
 - **Metrics:** precision, recall and F1 with "hallucinated" as the positive class, after dropping "not sure" (as in MedHallu), overall and per difficulty, with a bootstrap 95% interval. Also coverage, accuracy on answered items, risk-coverage curve, error overlap between verifiers, tokens and latency.
 
@@ -103,9 +103,18 @@ Filled in from the Colab run (`notebooks/phase1_baseline_colab.ipynb`, step 8). 
 | MedHallu paper, same setting | 0.791 | not reported | 0.522 | 0.679 | 0.515 | 0.372 |
 | Baseline B1: Llama 3.1 8B, source abstract given | 0.833 | 0.700 | 0.761 (0.719-0.799) | 0.871 | 0.813 | 0.592 |
 | MedHallu paper, same setting | 0.775 | not reported | 0.797 | 0.880 | 0.796 | 0.722 |
-| Full system, dev split (40 answers, end-to-end check) | | | | | | |
 
 Both published F1 scores fall inside our 95% intervals. Giving the source abstract raises F1 by 0.282 (paper: 0.275). Our hard-answer F1 is lower than the paper's, likely because of Ollama's 4-bit model and the smaller test split. Coverage was 1.000 in both runs.
+
+**Verifier prompt chosen on the validation split** (200 answers, setting A: PubMed with the source blocked; Llama 3.1 8B, Mistral 7B and Phi-4-mini; vote needs 2 of 3):
+
+| Prompt style | Vote coverage | Vote F1 | Vote accuracy on answered | Best single verifier F1 |
+| --- | --- | --- | --- | --- |
+| digits (0 / 1 / 2) | 0.660 | 0.595 | 0.659 | Phi 0.740 (coverage 0.370) |
+| words (FACTUAL / HALLUCINATED / UNSURE) | 0.780 | 0.444 | 0.647 | Llama 0.613 |
+| **reason** (short check, then `Verdict:`) | **0.900** | **0.683** | 0.644 | Llama 0.689 |
+
+These are validation numbers used to pick the prompt, not final results; the test split is run once with the chosen setup. With `reason`, the vote did not beat Llama alone on F1 (0.683 vs 0.689), which is exactly what gap 1 tests on the test split.
 
 ## Tests
 

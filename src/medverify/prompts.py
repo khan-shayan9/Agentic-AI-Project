@@ -82,7 +82,9 @@ def baseline_messages(
 #            HALLUCINATED, and Mistral 7B said UNSURE whenever the evidence was not on point)
 #   reason : one or two sentences of checking, then a last line "Verdict: <word>"
 PROMPT_STYLES = ("digits", "words", "reason")
-DEFAULT_PROMPT_STYLE = "words"
+# Chosen on the 200 validation answers (setting A, Oct 2026): vote F1 digits 0.595 (coverage 0.66),
+# words 0.444 (0.78), reason 0.683 (0.90); reason was the only style with no verifier stuck on one answer.
+DEFAULT_PROMPT_STYLE = "reason"
 
 _VERIFIER_HEAD = """You are one of several independent reviewers checking a medical answer.
 Decide whether the answer to the question is {choice}.
