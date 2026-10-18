@@ -1,0 +1,29 @@
+{
+  "candidates": [
+    {
+      "min_agree": 1,
+      "coverage": 0.955,
+      "selective_accuracy": 0.6544502617801047,
+      "f1": 0.6857142857142857
+    },
+    {
+      "min_agree": 2,
+      "coverage": 0.89,
+      "selective_accuracy": 0.6460674157303371,
+      "f1": 0.6802030456852791
+    },
+    {
+      "min_agree": 3,
+      "coverage": 0.405,
+      "selective_accuracy": 0.7037037037037037,
+      "f1": 0.764705882352941
+    }
+  ],
+  "chosen": {
+    "min_agree": 1,
+    "coverage": 0.955,
+    "selective_accuracy": 0.6544502617801047,
+    "f1": 0.6857142857142857
+  },
+  "min_coverage": 0.7
+}

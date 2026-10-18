@@ -1,0 +1,32 @@
+{
+  "llama vs mistral-local": {
+    "n": 141,
+    "p_a_wrong": 0.36879432624113473,
+    "p_b_wrong": 0.41134751773049644,
+    "both_wrong": 0.24822695035460993,
+    "both_wrong_if_independent": 0.15170263065238165,
+    "overlap_ratio": 1.6362732095490717,
+    "p_b_wrong_given_a_wrong": 0.6730769230769231,
+    "phi_error_correlation": 0.4065605700339844
+  },
+  "llama vs phi": {
+    "n": 161,
+    "p_a_wrong": 0.37267080745341613,
+    "p_b_wrong": 0.32919254658385094,
+    "both_wrong": 0.21739130434782608,
+    "both_wrong_if_independent": 0.12268045214305004,
+    "overlap_ratio": 1.772012578616352,
+    "p_b_wrong_given_a_wrong": 0.5833333333333334,
+    "phi_error_correlation": 0.4168361460054977
+  },
+  "mistral-local vs phi": {
+    "n": 163,
+    "p_a_wrong": 0.4233128834355828,
+    "p_b_wrong": 0.3374233128834356,
+    "both_wrong": 0.25153374233128833,
+    "both_wrong_if_independent": 0.14283563551507394,
+    "overlap_ratio": 1.7610013175230568,
+    "p_b_wrong_given_a_wrong": 0.5942028985507246,
+    "phi_error_correlation": 0.46528118854893824
+  }
+}

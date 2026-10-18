@@ -1,0 +1,62 @@
+{
+  "overall": {
+    "n": 600,
+    "answered": 600,
+    "coverage": 1.0,
+    "abstain_rate": 0.0,
+    "invalid_rate": 0.0,
+    "precision": 0.8346774193548387,
+    "recall": 0.69,
+    "f1": 0.7554744525547445,
+    "accuracy": 0.7766666666666666,
+    "selective_accuracy": 0.7766666666666666,
+    "f1_ci95": [
+      0.7142857142857144,
+      0.79383429672447
+    ]
+  },
+  "missing_predictions": 0,
+  "easy": {
+    "n": 200,
+    "answered": 200,
+    "coverage": 1.0,
+    "abstain_rate": 0.0,
+    "invalid_rate": 0.0,
+    "precision": 0.9090909090909091,
+    "recall": 0.8,
+    "f1": 0.8510638297872342,
+    "accuracy": 0.86,
+    "selective_accuracy": 0.86
+  },
+  "medium": {
+    "n": 200,
+    "answered": 200,
+    "coverage": 1.0,
+    "abstain_rate": 0.0,
+    "invalid_rate": 0.0,
+    "precision": 0.8888888888888888,
+    "recall": 0.72,
+    "f1": 0.7955801104972375,
+    "accuracy": 0.815,
+    "selective_accuracy": 0.815
+  },
+  "hard": {
+    "n": 200,
+    "answered": 200,
+    "coverage": 1.0,
+    "abstain_rate": 0.0,
+    "invalid_rate": 0.0,
+    "precision": 0.6962025316455697,
+    "recall": 0.55,
+    "f1": 0.6145251396648046,
+    "accuracy": 0.655,
+    "selective_accuracy": 0.655
+  },
+  "cost": {
+    "calls": 600,
+    "cached_calls": 0,
+    "mean_latency_s": 0.3914883333333333,
+    "mean_prompt_tokens": 673.3116666666666,
+    "mean_completion_tokens": 2.0
+  }
+}

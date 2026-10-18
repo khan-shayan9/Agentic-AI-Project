@@ -1,0 +1,62 @@
+{
+  "overall": {
+    "n": 200,
+    "answered": 178,
+    "coverage": 0.89,
+    "abstain_rate": 0.11,
+    "invalid_rate": 0.0,
+    "precision": 0.6146788990825688,
+    "recall": 0.7613636363636364,
+    "f1": 0.6802030456852791,
+    "accuracy": 0.6460674157303371,
+    "selective_accuracy": 0.6460674157303371,
+    "f1_ci95": [
+      0.6043956043956045,
+      0.7488584474885845
+    ]
+  },
+  "missing_predictions": 0,
+  "easy": {
+    "n": 68,
+    "answered": 63,
+    "coverage": 0.9264705882352942,
+    "abstain_rate": 0.07352941176470588,
+    "invalid_rate": 0.0,
+    "precision": 0.6904761904761905,
+    "recall": 0.9354838709677419,
+    "f1": 0.7945205479452055,
+    "accuracy": 0.7619047619047619,
+    "selective_accuracy": 0.7619047619047619
+  },
+  "medium": {
+    "n": 66,
+    "answered": 61,
+    "coverage": 0.9242424242424242,
+    "abstain_rate": 0.07575757575757576,
+    "invalid_rate": 0.0,
+    "precision": 0.5897435897435898,
+    "recall": 0.7931034482758621,
+    "f1": 0.676470588235294,
+    "accuracy": 0.639344262295082,
+    "selective_accuracy": 0.639344262295082
+  },
+  "hard": {
+    "n": 66,
+    "answered": 54,
+    "coverage": 0.8181818181818182,
+    "abstain_rate": 0.18181818181818182,
+    "invalid_rate": 0.0,
+    "precision": 0.5357142857142857,
+    "recall": 0.5357142857142857,
+    "f1": 0.5357142857142857,
+    "accuracy": 0.5185185185185185,
+    "selective_accuracy": 0.5185185185185185
+  },
+  "cost": {
+    "calls": 200,
+    "cached_calls": 0,
+    "mean_latency_s": 12.38184,
+    "mean_prompt_tokens": 2679.0,
+    "mean_completion_tokens": 327.935
+  }
+}

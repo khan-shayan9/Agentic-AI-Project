@@ -1,0 +1,27 @@
+{
+  "subset": "pqa_labeled",
+  "seed": 42,
+  "pubid_mapping": {
+    "matched_by_question": 1000
+  },
+  "splits": {
+    "test": {
+      "easy": 100,
+      "medium": 100,
+      "hard": 100,
+      "rows": 300
+    },
+    "val": {
+      "easy": 34,
+      "medium": 33,
+      "hard": 33,
+      "rows": 100
+    },
+    "dev": {
+      "easy": 7,
+      "medium": 7,
+      "hard": 6,
+      "rows": 20
+    }
+  }
+}

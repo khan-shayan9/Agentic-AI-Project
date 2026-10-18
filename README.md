@@ -95,26 +95,43 @@ Each run folder holds `config.json`, the raw outputs (`predictions.jsonl` or `st
 
 ## Phase 1 results
 
-Filled in from the Colab run (`notebooks/phase1_baseline_colab.ipynb`, step 10). Test split = 600 answers (300 true, 300 hallucinated).
+All numbers below come from the files in [`results/phase1/`](results/phase1/) (final Colab run, `notebooks/phase1_baseline_colab.ipynb`).
+
+**Baselines on the test split** (600 answers: 300 true, 300 hallucinated; Llama 3.1 8B through Ollama, the authors' prompt, temperature 0.3):
 
 | Run | Precision | Recall | F1 (95% interval) | Easy F1 | Medium F1 | Hard F1 |
 | --- | --- | --- | --- | --- | --- | --- |
-| Baseline B0: Llama 3.1 8B, no knowledge | 0.728 | 0.357 | 0.479 (0.419-0.533) | 0.683 | 0.428 | 0.281 |
-| MedHallu paper, same setting | 0.791 | not reported | 0.522 | 0.679 | 0.515 | 0.372 |
-| Baseline B1: Llama 3.1 8B, source abstract given | 0.833 | 0.700 | 0.761 (0.719-0.799) | 0.871 | 0.813 | 0.592 |
-| MedHallu paper, same setting | 0.775 | not reported | 0.797 | 0.880 | 0.796 | 0.722 |
+| B0: no knowledge (ours) | 0.706 | 0.360 | 0.477 (0.416-0.533) | 0.655 | 0.473 | 0.271 |
+| B0: MedHallu paper | 0.791 | not reported | 0.522 | 0.679 | 0.515 | 0.372 |
+| B1: source abstract given (ours) | 0.835 | 0.690 | 0.755 (0.714-0.794) | 0.851 | 0.796 | 0.615 |
+| B1: MedHallu paper | 0.775 | not reported | 0.797 | 0.880 | 0.796 | 0.722 |
+| B2: "not sure" allowed (ours) | 0.772 | 0.327 | 0.459 (0.401-0.514) | 0.658 | 0.420 | 0.260 |
 
-Both published F1 scores fall inside our 95% intervals. Giving the source abstract raises F1 by 0.282 (paper: 0.275). Our hard-answer F1 is lower than the paper's, likely because of Ollama's 4-bit model and the smaller test split. Coverage was 1.000 in both runs.
+The published B0 score (0.522) falls inside our 95% interval; the published B1 score (0.797) is just above it (upper end 0.794). Giving the source abstract raises F1 by 0.278 (paper: 0.275). Our hard-answer F1 is lower than the paper's, likely because of Ollama's 4-bit model and the smaller test split. In B2, Llama never chose "not sure" (coverage 1.000), so the authors' abstain option did not work for this model. An earlier run gave F1 0.479 (B0) and 0.761 (B1); the small gap comes from sampling at temperature 0.3, so Phase 2 reports the mean of three runs.
 
-**Verifier prompt chosen on the validation split** (200 answers, setting A: PubMed with the source blocked; Llama 3.1 8B, Mistral 7B and Phi-4-mini; vote needs 2 of 3):
+**Full system, end-to-end check on the dev split** (40 answers, setting A: PubMed with the source blocked; Llama 3.1 8B, Mistral 7B and Phi-4-mini; `reason` prompt; vote needs 2 of 3): coverage 0.950, precision 0.654, recall 0.895, F1 0.756 (0.595-0.889), accuracy on answered 0.711.
 
-| Prompt style | Vote coverage | Vote F1 | Vote accuracy on answered | Best single verifier F1 |
-| --- | --- | --- | --- | --- |
-| digits (0 / 1 / 2) | 0.660 | 0.595 | 0.659 | Phi 0.740 (coverage 0.370) |
-| words (FACTUAL / HALLUCINATED / UNSURE) | 0.780 | 0.444 | 0.647 | Llama 0.613 |
-| **reason** (short check, then `Verdict:`) | **0.900** | **0.683** | 0.644 | Llama 0.689 |
+**Verifier prompt chosen on the validation split** (200 answers, setting A, vote needs 2 of 3):
 
-These are validation numbers used to pick the prompt, not final results; the test split is run once with the chosen setup. With `reason`, the vote did not beat Llama alone on F1 (0.683 vs 0.689), which is exactly what gap 1 tests on the test split.
+| Prompt style | Vote coverage | Vote F1 (95% interval) | Vote accuracy on answered |
+| --- | --- | --- | --- |
+| digits (0 / 1 / 2) | 0.665 | 0.595 (0.476-0.694) | 0.662 |
+| words (FACTUAL / HALLUCINATED / UNSURE) | 0.795 | 0.447 (0.322-0.556) | 0.642 |
+| **reason** (short check, then `Verdict:`) | **0.890** | **0.680 (0.604-0.749)** | 0.646 |
+
+In our first validation run (not saved), Phi-4-mini mostly replied "not sure" with digits, and the models rarely said "hallucinated" with words. `reason` is the default for all later runs. These numbers only pick the prompt; the test split is run once with the chosen setup.
+
+**First look at the gaps on the validation split** (`reason` prompt):
+
+| | Result | File |
+| --- | --- | --- |
+| Each verifier alone (F1, coverage) | Llama 0.690 (0.825), Mistral 7B 0.611 (0.830), Phi-4-mini 0.673 (0.975); vote 0.680 (0.890) | `sysA-val-reason-states.jsonl` |
+| Gap 1: shared mistakes | Each pair is wrong together 1.6 to 1.8 times as often as independent errors would be (error correlation 0.41 to 0.47) | `sysA-val-reason-overlap.json` |
+| Gap 2: source leakage | PubMed returned the answer's own source abstract for 162 of 200 answers (81%); all were blocked. 2.5 clean abstracts were kept per answer on average | `sysA-val-reason-states.jsonl` |
+| Gap 3: vote rule | Among rules answering at least 70% of items, 1 of 3 agreeing gave the best accuracy on answered items (0.654, coverage 0.955); 2 of 3 gave 0.646 (0.890); 3 of 3 answered only 40.5% | `sysA-val-reason-tune.json` |
+| Cost | About 12 seconds of model time per answer for the three verifiers on a T4 GPU | `sysA-val-reason-states.jsonl` |
+
+These are early validation results. So far the three model families share many mistakes, and the vote does not beat the best single verifier. Phase 2 tests this on the test split against the self-consistency control (B4).
 
 ## Tests
 
