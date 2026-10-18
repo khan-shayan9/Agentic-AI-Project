@@ -95,7 +95,7 @@ Each run folder holds `config.json`, the raw outputs (`predictions.jsonl` or `st
 
 ## Phase 1 results
 
-Filled in from the Colab run (`notebooks/phase1_baseline_colab.ipynb`, step 8). Test split = 600 answers (300 true, 300 hallucinated).
+Filled in from the Colab run (`notebooks/phase1_baseline_colab.ipynb`, step 10). Test split = 600 answers (300 true, 300 hallucinated).
 
 | Run | Precision | Recall | F1 (95% interval) | Easy F1 | Medium F1 | Hard F1 |
 | --- | --- | --- | --- | --- | --- | --- |
