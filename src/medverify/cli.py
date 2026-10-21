@@ -21,7 +21,15 @@ from dotenv import load_dotenv
 
 from . import data as D
 from .llm import DEFAULT_VERIFIERS
-from .metrics import error_overlap, evaluate, format_table, risk_coverage
+from .metrics import (
+    efficiency_summary,
+    error_overlap,
+    evaluate,
+    format_summaries,
+    format_table,
+    leakage_summary,
+    risk_coverage,
+)
 from .prompts import DEFAULT_PROMPT_STYLE, PROMPT_STYLES
 from .schemas import Verdict, VerificationState
 
@@ -258,7 +266,7 @@ def cmd_pipeline(args):
                 "verifier (the default): ollama pull mistral:7b, then --verifiers llama,mistral-local,phi with a new --name."
             )
         raise SystemExit(f"Run stopped: {err}\n{done} of {len(items)} items were saved in {states_path}.{hint}")
-    _score(out, items, final_verdicts(states))
+    _score(out, items, final_verdicts(states), states=states)
 
 
 def _load_run(run: Path):
@@ -273,10 +281,16 @@ def _load_run(run: Path):
     raise SystemExit(f"No results in {run}: the run did not finish any item. Run it again first.")
 
 
-def _score(out: Path, items, verdicts, filename: str = "metrics.json"):
+def _score(out: Path, items, verdicts, filename: str = "metrics.json", states=None):
+    """Score verdicts and save them; pipeline runs (`states`) also get leakage and efficiency."""
     result = evaluate(items, verdicts)
+    if states is not None:
+        result["leakage"] = leakage_summary(states)
+        result["efficiency"] = efficiency_summary(states)
     (out / filename).write_text(json.dumps(result, indent=2))
     print(format_table(result))
+    if states is not None:
+        print(format_summaries(result["leakage"], result["efficiency"]))
     print(f"Saved to {out}")
 
 
@@ -292,7 +306,7 @@ def cmd_evaluate(args):
     # The forced rule and other rounds are saved next to metrics.json, never over it.
     suffix = ("-forced" if args.forced else "") + (f"-round{args.round}" if args.round else "")
     system = final_verdicts(states, args.min_agree, round=args.round, forced=args.forced)
-    _score(Path(args.run), items, system, f"metrics{suffix}.json")
+    _score(Path(args.run), items, system, f"metrics{suffix}.json", states=states)
     for name, vs in verifier_verdicts(states).items():
         print(f"\n-- verifier {name} on its own --")
         print(format_table(evaluate(items, vs, n_boot=0)))

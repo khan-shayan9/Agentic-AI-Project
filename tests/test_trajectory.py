@@ -199,3 +199,34 @@ def test_evaluate_round_and_forced_are_saved_next_to_metrics(rows, tmp_path, mon
     assert saved["overall"]["precision"] == 0.0  # round 2: everyone says factual
     assert round1["recall"] == 1.0  # round 1: majority says hallucinated
     assert forced["coverage"] == 1.0 and forced["abstain_rate"] == 0.0
+
+
+def test_phase1_leakage_and_efficiency_match_the_readme():
+    from medverify.metrics import efficiency_summary, leakage_summary
+
+    states = D.read_jsonl(PHASE1 / "sysA-val-reason-states.jsonl", VerificationState)
+    leak = leakage_summary(states)
+    assert leak["round1"]["items_searched"] == 200 and leak["round1"]["source_pmid_share"] == pytest.approx(0.81)
+    assert round(leak["round1"]["mean_clean_abstracts"], 1) == 2.5 and leak["round2"] == {"items_searched": 0}
+    eff = efficiency_summary(states)
+    assert eff["model_calls_per_item"] == 3 and round(eff["model_seconds_per_item"]) == 12
+    assert eff["abstain_share"] == pytest.approx(0.11) and eff["tool_calls_logged"] is False
+
+
+def test_no_block_run_counts_leaks_into_the_evidence(rows, tmp_path):
+    from medverify.metrics import leakage_summary
+
+    item = D.rows_to_items(rows)[1]
+    session = FakeSession(["1000", "2001"], [("1000", "Source", " ".join(item.knowledge)),
+                                             ("2001", "Other study", "An unrelated trial in older adults.")])
+    pubmed = PubMedSearch(cache_dir=tmp_path, session=session)
+    pubmed.min_interval = 0
+    verifiers = {"a": FakeModel("a", lambda m: "Verdict: HALLUCINATED")}
+    blocked = run_pipeline([item], verifiers, "pubmed", pubmed, k=3, min_agree=1)
+    kept = run_pipeline([item], verifiers, "pubmed", pubmed, k=3, min_agree=1, block=False)
+    assert "PMID 1000" in verifiers["a"].calls[1][-1]["content"]  # under --no-block the source reaches the verifier
+    assert kept[0].steps[1].detail["leaked"] == [{"pmid": "1000", "leak": "source_pmid"}]
+    for states, leaked in ((blocked, 0.0), (kept, 1.0)):
+        r1 = leakage_summary(states)["round1"]
+        assert r1["source_pmid_share"] == 1.0 and r1["leaked_into_evidence_share"] == leaked
+        assert r1["mean_clean_abstracts"] == 1.0

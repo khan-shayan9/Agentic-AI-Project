@@ -6,6 +6,8 @@
   selective accuracy = accuracy on answered items, and a risk-coverage curve.
 - Error overlap between two verifiers (instructor's condition 5).
 - Cost and speed: tokens and latency per item.
+- Pipeline runs only: leakage (how often PubMed returned the source) and efficiency
+  (model calls, tokens, model time and PubMed requests per item, over all rounds).
 """
 
 from __future__ import annotations
@@ -15,7 +17,7 @@ import random
 from collections import defaultdict
 from typing import Iterable, Optional, Sequence
 
-from .schemas import Item, Verdict
+from .schemas import Item, Verdict, VerificationState
 
 LEVELS = ("easy", "medium", "hard")
 
@@ -194,3 +196,103 @@ def aggregate_forced(codes: Sequence[Optional[int]], tie_break_code: Optional[in
     if ones != zeros:
         return 1 if ones > zeros else 0
     return tie_break_code if tie_break_code in (0, 1) else 1
+
+
+# ------------------------------------------------ leakage and efficiency
+
+def _leak_found(s: VerificationState, round_no: int, reason: str) -> bool:
+    """PubMed returned the source (or a near copy) in this round: blocked, or kept under --no-block."""
+    return any(b.round == round_no and b.reason == reason for b in s.blocked) or any(
+        e.round == round_no and e.leak == reason for e in s.evidence
+    )
+
+
+def _searched_in_round_2(s: VerificationState) -> bool:
+    return any(st.action == "claim_search" and st.detail.get("queries") for st in s.steps)
+
+
+def _leak_counts(states: list[VerificationState], round_no: int) -> dict:
+    n = len(states)
+    if not n:
+        return {"items_searched": 0}
+    clean = [sum(1 for e in s.evidence if e.round == round_no and e.leak is None) for s in states]
+    empty = sum(1 for s in states if not any(e.round == round_no for e in s.evidence))
+    return {
+        "items_searched": n,
+        "source_pmid_share": sum(_leak_found(s, round_no, "source_pmid") for s in states) / n,
+        "near_duplicate_share": sum(_leak_found(s, round_no, "near_duplicate") for s in states) / n,
+        "leaked_into_evidence_share": sum(any(e.round == round_no and e.leak for e in s.evidence) for s in states) / n,
+        "mean_clean_abstracts": sum(clean) / n,
+        "items_no_evidence": empty,
+        "items_no_evidence_share": empty / n,
+    }
+
+
+def leakage_summary(states: Iterable[VerificationState]) -> dict:
+    """How often PubMed returned the question's source abstract or near copies of it (gap 2).
+
+    Round 1 counts every PubMed item; round 2 counts the items searched again with a claim
+    query. "leaked_into_evidence" is non-zero only when blocking is off (ablation 2).
+    """
+    pubmed = [s for s in states if s.evidence_mode == "pubmed"]
+    return {
+        "round1": _leak_counts(pubmed, 1),
+        "round2": _leak_counts([s for s in pubmed if _searched_in_round_2(s)], 2),
+    }
+
+
+def efficiency_summary(states: Iterable[VerificationState]) -> dict:
+    """Cost per item, summed over all rounds: model calls, tokens, model seconds, PubMed requests."""
+    states = list(states)
+    n = len(states)
+    if not n:
+        return {"items": 0}
+    verdicts = [v for s in states for v in s.verdicts]
+    tools = [c for s in states for c in s.tool_calls]
+    triggered = sum(
+        any(st.action == "second_round_check" and st.detail.get("triggered") for st in s.steps) for s in states
+    )
+    return {
+        "items": n,
+        "model_calls_per_item": sum(1 + v.reasked for v in verdicts) / n,
+        "prompt_tokens_per_item": sum(v.prompt_tokens for v in verdicts) / n,
+        "completion_tokens_per_item": sum(v.completion_tokens for v in verdicts) / n,
+        "model_seconds_per_item": sum(v.latency_s for v in verdicts) / n,
+        "pubmed_requests_per_item": len(tools) / n,
+        "pubmed_uncached_per_item": sum(not c.cached for c in tools) / n,
+        "pubmed_cached_per_item": sum(c.cached for c in tools) / n,
+        "tool_calls_logged": bool(tools),  # False for Phase 1 runs, which did not log PubMed requests
+        "round2_triggered_share": triggered / n,
+        "round2_share": sum(s.rounds >= 2 for s in states) / n,
+        "no_new_evidence_share": sum("no_new_evidence" in s.flags for s in states) / n,
+        "reasks": sum(v.reasked for v in verdicts),
+        "abstain_share": sum(s.final == 2 for s in states) / n,
+        "unreadable_replies": sum(v.verdict is None for v in verdicts),
+    }
+
+
+def format_summaries(leakage: dict, efficiency: dict) -> str:
+    """Short text version of the leakage and efficiency sections."""
+    lines = ["", "-- leakage (PubMed returned the source / near copies) --"]
+    for name, m in leakage.items():
+        if not m.get("items_searched"):
+            lines.append(f"{name}: no PubMed searches")
+            continue
+        lines.append(
+            f"{name}: {m['items_searched']} items, source {m['source_pmid_share']:.3f}, near copies "
+            f"{m['near_duplicate_share']:.3f}, leaked into evidence {m['leaked_into_evidence_share']:.3f}, "
+            f"clean abstracts {m['mean_clean_abstracts']:.2f}/item, no evidence {m['items_no_evidence']}"
+        )
+    e = efficiency
+    if e.get("items"):
+        pubmed = (f"PubMed requests {e['pubmed_requests_per_item']:.2f} ({e['pubmed_uncached_per_item']:.2f} not cached)"
+                  if e["tool_calls_logged"] else "PubMed requests not logged")
+        lines += [
+            "-- efficiency (per item, all rounds) --",
+            f"model calls {e['model_calls_per_item']:.2f}, tokens {e['prompt_tokens_per_item']:.0f} in / "
+            f"{e['completion_tokens_per_item']:.0f} out, model time {e['model_seconds_per_item']:.1f}s, {pubmed}",
+            f"round 2: triggered {e['round2_triggered_share']:.3f}, judged {e['round2_share']:.3f}, "
+            f"no new evidence {e['no_new_evidence_share']:.3f}; re-asks {e['reasks']}, "
+            f"abstain {e['abstain_share']:.3f}, unreadable replies {e['unreadable_replies']}",
+        ]
+    return "\n".join(lines)

@@ -189,3 +189,26 @@ def test_debate_and_second_round_cannot_be_combined(rows, tmp_path, monkeypatch)
         cli.main(["pipeline", "--split", "dev", "--evidence", "pubmed", "--debate", "--second-round", "split"])
     with pytest.raises(ValueError, match="cannot be used together"):
         verify_item(D.rows_to_items(rows)[0], split_panel(), "none", None, 3, 2, debate=True, second_round_rule="split")
+
+
+def test_leakage_and_efficiency_cover_round_two(rows, tmp_path, monkeypatch):
+    from medverify.metrics import efficiency_summary, leakage_summary
+
+    item = D.rows_to_items(rows)[1]
+    panel = split_panel()
+    panel["phi"] = FakeModel("fake-phi", lambda m: "Verdict: HALLUCINATED" if "could not find" in m[-1]["content"]
+                             or f"PMID {NEW_PMID}" in m[-1]["content"] else "Hmm.")  # unreadable once in round 1
+    state = verify_item(item, panel, "pubmed", fake_pubmed(tmp_path, item, claim_ids=("1000", NEW_PMID)),
+                        k=3, min_agree=2, second_round_rule="split")
+    leak = leakage_summary([state])
+    assert leak["round1"]["source_pmid_share"] == 1.0 and leak["round2"]["items_searched"] == 1
+    assert leak["round2"]["source_pmid_share"] == 1.0 and leak["round2"]["mean_clean_abstracts"] == 1.0
+    eff = efficiency_summary([state])
+    assert eff["model_calls_per_item"] == 7  # round 1: 3 + 1 re-ask; round 2: 3
+    assert eff["reasks"] == 1 and eff["round2_triggered_share"] == 1.0 and eff["round2_share"] == 1.0
+    assert eff["pubmed_requests_per_item"] == 4 and eff["tool_calls_logged"] is True
+
+    cli = pipeline_workspace(tmp_path, monkeypatch, rows, split_panel())
+    cli.main(["pipeline", "--split", "dev", "--evidence", "pubmed", "--second-round", "split", "--name", "sum"])
+    saved = json.loads((tmp_path / "results/runs/sum/metrics.json").read_text())
+    assert saved["leakage"]["round2"]["items_searched"] == 2 and saved["efficiency"]["items"] == 2
