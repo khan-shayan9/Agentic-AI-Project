@@ -6,8 +6,9 @@ these models serialised as one JSON line, so runs are easy to inspect and reload
 
 from __future__ import annotations
 
+import hashlib
 import time
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 
 from pydantic import BaseModel, Field, PrivateAttr
 
@@ -33,17 +34,33 @@ class Row(BaseModel):
 
 
 class Item(BaseModel):
-    """One thing to verify: a question plus ONE answer (true or hallucinated)."""
+    """One thing to verify: a question plus ONE answer (true or hallucinated).
+
+    Items typed by a user have no gold label and no MedHallu difficulty (label None,
+    difficulty "unknown"); they can be verified but not scored.
+    """
 
     item_id: str
     row_id: str
     question: str
     answer: str
-    label: Literal[0, 1]  # 1 = hallucinated
-    difficulty: Difficulty
-    category: str
+    label: Optional[Literal[0, 1]] = None  # 1 = hallucinated; None = unknown (user item)
+    difficulty: Union[Difficulty, Literal["unknown"]] = "unknown"
+    category: str = ""
     knowledge: list[str] = Field(default_factory=list)
     pubid: Optional[int] = None
+
+
+def user_item(question: str, answer: str, pmid: Optional[Union[int, str]] = None) -> Item:
+    """An unlabelled item typed by a user. The id is stable: "user-" + a short sha256 of question and answer.
+
+    `pmid` is the answer's known source abstract, if the user has one; it is blocked from the evidence.
+    """
+    question, answer = question.strip(), answer.strip()
+    digest = hashlib.sha256(f"{question}\n{answer}".encode("utf-8")).hexdigest()[:12]
+    item_id = f"user-{digest}"
+    pubid = int(str(pmid).strip()) if pmid not in (None, "") and str(pmid).strip() else None
+    return Item(item_id=item_id, row_id=item_id, question=question, answer=answer, category="user", pubid=pubid)
 
 
 class LLMResult(BaseModel):

@@ -56,6 +56,12 @@ def _summarise(pairs: list[tuple[int, Optional[int]]]) -> dict:
 def evaluate(items: Iterable[Item], verdicts: Iterable[Verdict], n_boot: int = 1000, seed: int = 0) -> dict:
     """Overall and per-difficulty metrics, plus a bootstrap 95% interval for overall F1."""
     items, verdicts = list(items), list(verdicts)
+    unlabelled = [it.item_id for it in items if it.label is None]
+    if unlabelled:
+        raise ValueError(
+            f"evaluate needs items with a gold label; {len(unlabelled)} item(s) have none (for example "
+            f"{unlabelled[0]}). Items typed by a user can be verified but not scored."
+        )
     item_map = {it.item_id: it for it in items}
     pred = {v.item_id: v.verdict for v in verdicts}
     missing = [i for i in item_map if i not in pred]
