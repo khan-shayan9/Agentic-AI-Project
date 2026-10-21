@@ -27,7 +27,11 @@ src/medverify/
   pipeline.py     multi-agent system (evidence agent, verifiers, decision step)
   metrics.py      F1 per difficulty, coverage, selective accuracy, error overlap, cost
   cli.py          the `python -m medverify` commands
-experiments/      Phase 2 run plan (plan.py), runner (run.py) and val-only trigger choice (choose.py)
+experiments/      Phase 2 run plan (plan.py), runner (run.py), val-only trigger choice (choose.py), cache backup
+                  (state.py), export to results/phase2 (export.py) and the report (report.py, gaps.py,
+                  failures.py, figures.py, stats.py, facts.py)
+results/          phase1/ (Phase 1 files) and phase2/ (exported runs, tables, figures; committed)
+logs/             agent trajectory samples and representative cases (see logs/README.md)
 notebooks/        Colab notebooks: Phase 1 baseline, and Phase 2 experiments (also runs on Kaggle)
 tests/            offline tests (fake models, no internet needed)
 docs/             architecture and development log (docs/devlog.md)
@@ -196,6 +200,21 @@ python -m experiments.state save --to DIR          # back up the reply and PubMe
 **Where results go:** each run in `results/runs/<name>/` (`config.json`, `states.jsonl` or `predictions.jsonl`, `metrics.json`); the chosen trigger with its validation numbers in `experiments/final_config.json` (commit it); the Ollama model versions in `results/runs/ollama_versions.txt`. On Colab, `results/runs` lives in `MyDrive/medverify_phase2`; the reply cache stays on local disk, because SQLite is not safe on network or cloud drives ([sqlite.org/useovernet.html](https://sqlite.org/useovernet.html)), and is backed up to `MyDrive/medverify_phase2/state` after every run (`--backup-dir`, `experiments/state.py`). On Kaggle the backup goes to `/kaggle/working/medverify_state`, and the last notebook cell zips it with `results/runs` as `medverify_state.zip`.
 
 ## Results
+
+Every table and figure is rebuilt from files committed in [`results/phase2/`](results/phase2/), so each number can be reproduced from a fresh clone:
+
+```bash
+python -m experiments.export                 # after the runs: copy finished runs from results/runs to results/phase2
+python -m experiments.report                 # tables, figures, failure analysis, cases and this gap table (test split)
+python -m experiments.report --split val     # the same for the validation runs (tables/val, figures/val)
+pip install -e ".[analysis]"                 # matplotlib, needed for the figures
+```
+
+- **Tables** in [`results/phase2/tables/`](results/phase2/tables/) (each as `.csv` and `.md`, missing runs listed at the top): `runs` (every run), `main` (mean ± SD over seeds, with the MedHallu reported numbers, B3 and System A round 1 / forced), `overlap`, `leakage`, `ablation`, `significance` (paired bootstrap with 10,000 resamples and exact McNemar), `gap_resolution`, and `failures` with `failures_summary.md`.
+- **Figures** in [`results/phase2/figures/`](results/phase2/figures/) (`.png` at 300 dpi and `.pdf`, one IEEE column wide): `f1_by_difficulty`, `risk_coverage`, `error_overlap`, `ablation`, `cost`.
+- **Trajectories** in [`logs/`](logs/): 20 sample states per run and the representative cases; the full states of every run are in `results/phase2/runs/<run>/states.jsonl.gz`.
+
+How the hypotheses (see [Phase 2 experiments](#phase-2-experiments)) are tested: **H1** by `significance` (System A round-1 vote vs B4 and vs the best single verifier) and `overlap` (cross-family vs same-model pairs); **H2** by `main` and `significance` (System A vs B0 and B1, System B vs B1) and `leakage`; **H3** by the coverage in `main` against the val coverage in `experiments/final_config.json`, and System A vs its forced-answer version in `ablation`. The gap table below is written by `python -m experiments.report`; "Addressed?" follows the rule fixed in [docs/devlog.md](docs/devlog.md) before any test result existed.
 
 <!-- GAP_TABLE_START -->
 Pending: no Phase 2 test run has been exported yet. `python -m experiments.export`, then `python -m experiments.report`, fills this table.
