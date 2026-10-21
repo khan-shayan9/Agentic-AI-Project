@@ -7,6 +7,7 @@
   overlap   error overlap between verifiers (independence check)
   compare   one table across pipeline runs (e.g. prompt styles on val)
   tune      pick the vote rule on the validation split
+  verify    check one question and answer typed by you (accept / reject / not sure, with the evidence)
 """
 
 from __future__ import annotations
@@ -376,6 +377,51 @@ def cmd_tune(args):
         print("Warning: tune on the val split, then apply the chosen rule to test.")
 
 
+# ---------------------------------------------------------------- use it
+
+def _verify_setup(args) -> tuple[dict, str, str]:
+    """Verifiers and the second-round rule for verify and batch (with a note saying where the rule came from)."""
+    from . import service
+
+    rule, why = service.resolve_second_round(args.second_round)
+    names = [n.strip() for n in args.verifiers.split(",") if n.strip()]
+    return service.make_verifiers(names), rule, why
+
+
+def _model_error(err: Exception) -> SystemExit:
+    return SystemExit(f"{err}\nIs Ollama running with the models pulled (ollama pull llama3.1:8b mistral:7b phi4-mini)? "
+                      "Finished items are kept.")
+
+
+def cmd_verify(args):
+    from . import service
+    from .explain import format_report
+    from .pipeline import VerifierCallError
+
+    if args.evidence == "source" and not args.pmid:
+        raise SystemExit("--evidence source needs --pmid: the PubMed ID of the answer's source abstract.")
+    verifiers, rule, why = _verify_setup(args)
+    try:
+        state = service.verify_one(args.question, args.answer, args.pmid, verifiers, args.evidence, rule, args.min_agree)
+    except VerifierCallError as err:
+        raise _model_error(err)
+    except ValueError as err:
+        raise SystemExit(str(err))
+    if args.save:
+        Path(args.save).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.save).write_text(state.model_dump_json(indent=2), encoding="utf-8")
+    print(state.model_dump_json(indent=2) if args.json else format_report(state, second_round_note=f"{rule}; {why}"))
+
+
+def _add_use_options(s) -> None:
+    s.add_argument("--evidence", default="pubmed", choices=["pubmed", "none", "source"],
+                   help="pubmed (source blocked), none, or source (the --pmid abstract as the evidence)")
+    s.add_argument("--verifiers", default=",".join(DEFAULT_VERIFIERS), help="comma-separated verifier names")
+    s.add_argument("--second-round", default="auto", choices=["auto", "off", "split", "no-majority"],
+                   help="auto = the trigger in experiments/final_config.json if it exists, otherwise off")
+    s.add_argument("--min-agree", type=int, default=2)
+
+
 # ------------------------------------------------------------------- parser
 
 def build_parser() -> argparse.ArgumentParser:
@@ -449,6 +495,15 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("run")
     s.add_argument("--min-coverage", type=float, default=0.7)
     s.set_defaults(func=cmd_tune)
+
+    s = sub.add_parser("verify", help="check one question and answer: accept / reject / not sure, with the evidence")
+    s.add_argument("--question", required=True)
+    s.add_argument("--answer", required=True)
+    s.add_argument("--pmid", help="PubMed ID of the answer's known source abstract (blocked, or the evidence with --evidence source)")
+    _add_use_options(s)
+    s.add_argument("--json", action="store_true", help="print the full VerificationState as JSON")
+    s.add_argument("--save", help="also save the state as JSON to this path")
+    s.set_defaults(func=cmd_verify)
     return p
 
 

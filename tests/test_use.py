@@ -52,3 +52,74 @@ def test_source_mode_uses_the_user_given_abstract(tmp_path):
     assert SOURCE in models["llama"].calls[0][1]["content"]
     with pytest.raises(ValueError, match="needs the answer's source abstract"):
         verify_user_item(user_item(QUESTION, ANSWER), panel(), "source", fake_pubmed(tmp_path / "b"))
+
+
+# ------------------------------------------------------------- verify command
+
+import json  # noqa: E402
+
+import medverify.llm as llm  # noqa: E402
+import medverify.tools.pubmed as pm  # noqa: E402
+from medverify import cli, service  # noqa: E402
+from medverify.schemas import VerificationState  # noqa: E402
+
+REASONS = {"llama": "The trial found lower, not higher, blood pressure.", "mistral-local": "The mechanism is invented.",
+           "phi": "Hard to say from these abstracts."}
+
+
+@pytest.fixture
+def offline(tmp_path, monkeypatch):
+    """Fake verifiers and a fake PubMed; no experiments/final_config.json unless a test writes one."""
+    monkeypatch.chdir(tmp_path)
+    calls = {}
+
+    def make_model(name, **kw):
+        verdict = "UNSURE" if name == "phi" else "HALLUCINATED"
+        calls.setdefault(name, FakeModel(f"fake-{name}", lambda m, r=f"{REASONS[name]}\nVerdict: {verdict}": r))
+        return calls[name]
+
+    monkeypatch.setattr(llm, "make_model", make_model)
+    monkeypatch.setattr(pm, "PubMedSearch", lambda: fake_pubmed(tmp_path))
+    monkeypatch.setattr(service, "FINAL_CONFIG", tmp_path / "final_config.json")
+    return tmp_path, calls
+
+
+def run_verify(capsys, *extra):
+    cli.main(["verify", "--question", QUESTION, "--answer", ANSWER, *extra])
+    return capsys.readouterr().out
+
+
+def test_verify_prints_a_plain_english_report(offline, capsys):
+    out = run_verify(capsys, "--pmid", "5555")
+    assert "Decision: REJECT (hallucinated" in out and "Agreement: 2 of 3 verifiers said hallucinated" in out
+    for name, reason in REASONS.items():
+        assert f"{name} (round 1)" in out and reason in out
+    assert "PMID 2001" in out and "https://pubmed.ncbi.nlm.nih.gov/2002/" in out
+    assert "PMID 5555: the answer's own source abstract" in out and "PMID 5556: a near copy of the source abstract" in out
+    assert "Second round: off [off; auto: off, because experiments/final_config.json does not exist yet]" in out
+    assert "model calls" in out and "Research prototype, not medical advice." in out
+
+
+def test_verify_json_and_save(offline, capsys):
+    tmp, _ = offline
+    out = run_verify(capsys, "--json", "--save", str(tmp / "state.json"))
+    state = VerificationState.model_validate(json.loads(out))
+    assert state.item_id.startswith("user-") and state.final == 1 and len(state.verdicts) == 3
+    assert json.loads((tmp / "state.json").read_text(encoding="utf-8"))["item_id"] == state.item_id
+
+
+def test_verify_second_round_auto_reads_final_config(offline, capsys):
+    tmp, calls = offline
+    (tmp / "final_config.json").write_text(json.dumps({"trigger": "split"}))
+    out = run_verify(capsys)
+    assert "[split; auto: the trigger chosen on the validation split" in out
+    assert "Second round: ran" in out and len(calls["llama"].calls) == 2  # votes 1, 1, 2 are split: judged again
+    assert service.resolve_second_round("no-majority") == ("no-majority", "set by you")
+
+
+def test_verify_not_sure_explains_why(offline, capsys, monkeypatch):
+    monkeypatch.setattr(llm, "make_model", lambda name, **kw: FakeModel(name, lambda m: "Unclear.\nVerdict: UNSURE"))
+    out = run_verify(capsys, "--evidence", "none")
+    assert "Decision: NOT SURE (sent for human review)" in out and "Why not sure: Most verifiers were unsure" in out
+    with pytest.raises(SystemExit, match="--evidence source needs --pmid"):
+        run_verify(capsys, "--evidence", "source")
