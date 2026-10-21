@@ -245,3 +245,78 @@ def test_gap_table_is_pending_without_runs_and_goes_into_the_readme(tmp_path, mo
     assert "old" not in text and text.endswith("after\n") and "| Gap | Method / component |" in text
     assert "Missing runs: b0-test-s1" in text and "pending (runs missing)" in text
     assert gaps.update_readme(tmp_path / "README.md", "again") and "again" in readme.read_text(encoding="utf-8")
+
+
+# ------------------------------------------------------------- failure analysis
+
+from experiments import failures  # noqa: E402
+from medverify.schemas import Verdict as V, VerificationState as S  # noqa: E402
+
+
+def make_state(item_id, final, last, first=None, flags=(), final_round1=None):
+    """A hand-made state: `first` = round-1 votes, `last` = round-2 votes (if different)."""
+    first = first if first is not None else last
+    verdicts = [V(item_id=item_id, system=f"verifier:v{i}", verdict=c, raw_text="", provider="f", model="m", latency_s=0)
+                for i, c in enumerate(first)]
+    rounds = 1
+    if first is not last:
+        rounds = 2
+        verdicts += [V(item_id=item_id, system=f"verifier:v{i}", verdict=c, raw_text="", provider="f", model="m",
+                       latency_s=0, round=2) for i, c in enumerate(last)]
+    return S(item_id=item_id, evidence_mode="pubmed", verdicts=verdicts, final=final, rounds=rounds,
+             final_round1=final if final_round1 is None else final_round1, flags=list(flags))
+
+
+@pytest.mark.parametrize("label, final, votes, expected", [
+    (1, 1, [1, None, 1], "unreadable"),
+    (1, 2, [1, 2, 2], "abstained - majority would have been right"),
+    (0, 2, [1, 2, 2], "abstained - majority would have been wrong"),
+    (0, 2, [1, 0, 2], "abstained - votes tied"),
+    (1, 0, [0, 0, 0], "missed hallucination - all verifiers fooled"),
+    (1, 0, [0, 0, 1], "missed hallucination - majority fooled"),
+    (0, 1, [1, 1, 1], "false alarm - all verifiers"),
+    (0, 1, [1, 1, 2], "false alarm - majority"),
+    (0, 0, [0, 0, 1], "correct"),
+])
+def test_failure_categories(label, final, votes, expected):
+    assert failures.categorise(make_state("x", final, votes), label) == expected
+
+
+def test_round_two_flips():
+    states = [
+        make_state("a-hal", 1, [1, 1, 1], first=[1, 0, 2], final_round1=2),  # abstain -> right
+        make_state("b-gt", 1, [1, 1, 0], first=[0, 0, 1], final_round1=0),  # right -> wrong
+        make_state("c-hal", 1, [1, 1, 1], first=[0, 0, 1], final_round1=0),  # wrong -> right
+        make_state("d-gt", 0, [0, 0, 0]),  # round 1 only, and these hand-made states have no evidence
+        make_state("e-gt", 0, [0, 0, 1], flags=["no_new_evidence"]),
+    ]
+    labels = {"a-hal": 1, "b-gt": 0, "c-hal": 1, "d-gt": 0, "e-gt": 0}
+    assert [failures.evidence_state(s, labels[s.item_id]) for s in states] == [
+        "round 2 flipped abstain->right", "round 2 flipped right->wrong", "round 2 flipped wrong->right",
+        "no clean evidence", "second round triggered, no new evidence"]
+    rows = [{"label": labels[s.item_id], "rounds": s.rounds, "round1_decision": s.final_round1, "final_decision": s.final}
+            for s in states]
+    assert failures.flip_table(rows) == {("abstain", "right"): 1, ("right", "wrong"): 1, ("wrong", "right"): 1}
+
+
+def test_failure_analysis_cases_and_samples(reported):
+    tables = reported / "results/phase2/tables"
+    rows = read_csv(tables / "failures.csv")
+    assert len(rows) == 24 and all(r["failure_category"] in failures.CATEGORIES for r in rows)
+    summary = (tables / "failures_summary.md").read_text(encoding="utf-8")
+    assert "Missing runs: debate-test-s1" in summary and "## By difficulty" in summary and "## Round-2 flips" in summary
+    typed = [r | {"label": int(r["label"]), "rounds": int(r["rounds"]), "round1_decision": int(r["round1_decision"]),
+                  "final_decision": int(r["final_decision"])} for r in rows]
+    picks = failures.pick_cases(typed)
+    assert picks and picks == sorted(picks, key=lambda p: not p[0].startswith("success"))  # successes first
+    for _, item_id in picks:
+        case = (reported / f"logs/cases/{item_id}.md").read_text(encoding="utf-8")
+        assert "**Question:**" in case and "## Steps" in case and "verifier: judge" in case
+        assert json.loads((reported / f"logs/cases/{item_id}.json").read_text(encoding="utf-8"))["state"]["item_id"] == item_id
+    samples = sorted(p.name for p in (reported / "logs/samples").iterdir())
+    chosen = report.CHOSEN_VAL_RUN[phase2_fixture.final_config(reported)["trigger"]]
+    assert samples == sorted([f"{chosen}.jsonl", "sysA-test-s1.jsonl", "b4-test-s1.jsonl"])  # debate is missing
+    lines = (reported / "logs/samples/sysA-test-s1.jsonl").read_text(encoding="utf-8").splitlines()
+    ids = [json.loads(line)["item_id"] for line in lines]
+    assert len(ids) == 20 and ids == sorted(ids)
+    assert (tables / "val/failures.csv").exists() and any((reported / "logs/cases/val").iterdir())

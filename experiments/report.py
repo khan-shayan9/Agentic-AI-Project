@@ -417,6 +417,11 @@ def write_all(rep: Report, readme: Optional[Path] = Path("README.md")) -> dict:
         from .gaps import write_gap_table
 
         tables["gap_resolution"] = write_gap_table(rep, readme)
+    from .failures import write_failures, write_samples
+
+    # failure analysis on System A seed 1; with --split val on the chosen val run, to find problems before the test stage
+    tables["failures"] = write_failures(rep, rep.runs.get("sysA-test-s1") if rep.split == "test" else rep.chosen_val)
+    write_samples(rep)
     return tables
 
 
