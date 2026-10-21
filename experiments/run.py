@@ -3,8 +3,8 @@
   python -m experiments.run --stage smoke|val|test [--only E2,E3] [--names b0-test-s1,...]
                             [--backup-dir DIR] [--dry-run]
 
-  smoke  every val and test run on the dev split with --limit 6 (names "smoke-..."), a quick
-         crash check before spending GPU time; TRIGGER = "split"
+  smoke  one run per configuration (the seed-1 version) on 6 dev answers (names "smoke-..."),
+         a quick crash check before spending GPU time, not a repeat; TRIGGER = "split"
   val    the three validation runs (second round off / split / no-majority)
   test   the test runs; needs experiments/final_config.json (python -m experiments.choose),
          whose trigger replaces TRIGGER
@@ -60,8 +60,9 @@ def final_trigger() -> str:
 
 def stage_jobs(stage: str) -> list[Job]:
     """All jobs of one stage, in plan order."""
-    if stage == "smoke":
-        return [_job(r, f"smoke-{r.name}", "dev", SMOKE_TRIGGER, SMOKE_LIMIT) for r in VAL_RUNS + TEST_RUNS]
+    if stage == "smoke":  # seeds 2 and 3 would only repeat the same configuration on the same answers
+        runs = [r for r in VAL_RUNS + TEST_RUNS if r.seed in (None, 1)]
+        return [_job(r, f"smoke-{r.name}", "dev", SMOKE_TRIGGER, SMOKE_LIMIT) for r in runs]
     if stage == "val":
         return [_job(r, r.name, "val", None) for r in VAL_RUNS]
     if stage == "test":

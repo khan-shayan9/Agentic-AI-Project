@@ -29,6 +29,10 @@ class Run:
     stage: str  # "val" or "test"
     args: tuple[str, ...]  # medverify arguments without --split and --name
 
+    @property
+    def seed(self) -> int | None:
+        return int(self.args[self.args.index("--seed") + 1]) if "--seed" in self.args else None
+
     def argv(self, split: str, name: str, trigger: str, limit: int | None = None) -> list[str]:
         """Full argument list for medverify.cli.main, with TRIGGER replaced."""
         args = [trigger if a == TRIGGER else a for a in self.args]

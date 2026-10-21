@@ -69,7 +69,7 @@ def test_test_stage_needs_final_config_and_uses_its_trigger(workspace):
 
 def test_smoke_and_val_stages(workspace):
     smoke = runner.stage_jobs("smoke")
-    assert len(smoke) == len(plan.ALL_RUNS) and all(j.name.startswith("smoke-") for j in smoke)
+    assert all(j.name.startswith("smoke-") for j in smoke)
     for job in smoke:
         assert job.argv[job.argv.index("--split") + 1] == "dev" and job.argv[job.argv.index("--limit") + 1] == "6"
         if "--second-round" in job.argv:
@@ -77,7 +77,19 @@ def test_smoke_and_val_stages(workspace):
     val = runner.stage_jobs("val")
     assert [j.name for j in val] == ["val-sysA-off", "val-sysA-split", "val-sysA-nomaj"]
     assert all(j.argv[j.argv.index("--split") + 1] == "val" for j in val)
-    assert [j.name for j in runner.select(smoke, "E2", "smoke-b0-test-s1,b1-test-s2")] == ["smoke-b0-test-s1", "smoke-b1-test-s2"]
+    assert [j.name for j in runner.select(smoke, "E2", "smoke-b0-test-s1,b1-test-s1")] == ["smoke-b0-test-s1", "smoke-b1-test-s1"]
+
+
+def test_smoke_stage_has_one_run_per_configuration(workspace, capsys):
+    import re
+
+    smoke = runner.stage_jobs("smoke")
+    configs = [re.sub(r"-s\d+$", "", j.run.name) for j in smoke]
+    assert len(configs) == len(set(configs)) == 13  # 3 val runs + 10 test configurations
+    assert set(configs) == {re.sub(r"-s\d+$", "", r.name) for r in plan.ALL_RUNS}  # none left out
+    assert all(j.run.seed == 1 for j in smoke) and not any(j.name.endswith(("-s2", "-s3")) for j in smoke)
+    runner.main(["--stage", "smoke", "--dry-run"])
+    assert "smoke stage: 13 runs" in capsys.readouterr().out
 
 
 def jobs_without_pubmed():
