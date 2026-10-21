@@ -73,3 +73,55 @@ def test_responses_are_cached(tmp_path):
     tool.search("drug alpha")
     tool.search("drug alpha")
     assert len(session.calls) == 1
+
+
+def leak_records():
+    return [
+        ("111", "Source paper", SOURCE),
+        ("222", "Duplicate publication", SOURCE + " Extra sentence."),
+        ("333", "Independent study", "A separate cohort found drug alpha had modest effects on systolic pressure."),
+        ("444", "Another study", "Meta analysis of antihypertensive agents in diabetic adults."),
+    ]
+
+
+def make_tool(tmp_path, idlist, records):
+    session = FakeSession(idlist, records)
+    tool = PubMedSearch(cache_dir=tmp_path, session=session)
+    tool.min_interval = 0
+    return tool, session
+
+
+def test_no_retry_uses_only_the_first_query(tmp_path):
+    tool, session = make_tool(tmp_path, ["333"], leak_records())
+    queries = ["word " * 10, "drug alpha blood pressure"]  # the first query is too long and finds nothing
+    kept, _ = tool.retrieve(queries, k=3, retry=False)
+    assert kept == [] and [p["term"] for _, p in session.calls] == [queries[0]]
+    kept, _ = tool.retrieve(queries, k=3)  # with retry, the shorter query is tried
+    assert [e.pmid for e in kept] == ["333"]
+
+
+def test_exclude_pmids_skips_abstracts_already_seen(tmp_path):
+    tool, _ = make_tool(tmp_path, ["111", "222", "333", "444"], leak_records())
+    kept, blocked = tool.retrieve("drug alpha", k=3, block_pmids=[111], block_texts=[SOURCE], exclude_pmids=["333"])
+    assert [e.pmid for e in kept] == ["444"]
+    assert {b.pmid for b in blocked} == {"111", "222"}
+
+
+def test_no_block_keeps_the_source_and_marks_the_leak(tmp_path):
+    tool, _ = make_tool(tmp_path, ["111", "222", "333", "444"], leak_records())
+    kept, blocked = tool.retrieve("drug alpha", k=4, block_pmids=[111], block_texts=[SOURCE], block=False)
+    assert blocked == []
+    assert [(e.pmid, e.leak) for e in kept] == [
+        ("111", "source_pmid"), ("222", "near_duplicate"), ("333", None), ("444", None),
+    ]
+    kept, blocked = tool.retrieve("drug alpha", k=4, block_pmids=[111], block_texts=[SOURCE])
+    assert all(e.leak is None for e in kept) and len(blocked) == 2
+
+
+def test_tool_calls_are_logged(tmp_path):
+    tool, _ = make_tool(tmp_path, ["333"], leak_records())
+    tool.retrieve("drug alpha", k=1)
+    tool.retrieve("drug alpha", k=1)
+    assert [(c.tool, c.cached) for c in tool.calls] == [
+        ("pubmed.esearch", False), ("pubmed.efetch", False), ("pubmed.esearch", True), ("pubmed.efetch", True),
+    ]

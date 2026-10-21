@@ -163,36 +163,51 @@ class PubMedSearch:
         block_texts: Iterable[str] = (),
         overlap_threshold: float = 0.3,
         search_size: int = 10,
+        block: bool = True,
+        retry: bool = True,
+        exclude_pmids: Iterable[int | str] = (),
     ) -> tuple[list[Evidence], list[BlockedEvidence]]:
         """Top-k abstracts after removing the source and near copies of it.
 
         `queries` may be a list; each is tried in order until one returns usable results.
+        Switches for ablations:
+          retry=False   only the first query, no shorter retry (baseline B5, simple RAG)
+          block=False   keep the source and near copies, but mark them on Evidence.leak
+          exclude_pmids skip abstracts the verifiers have already seen (second round)
         """
         if isinstance(queries, str):
             queries = [queries]
+        if not retry:
+            queries = queries[:1]
         blocked_ids = {str(p) for p in block_pmids if p is not None}
+        excluded = {str(p) for p in exclude_pmids}
         source_text = " ".join(block_texts)
         query, pmids = queries[0], []
         for query in queries:
             pmids = self.search(query, retmax=search_size)
-            if any(p not in blocked_ids for p in pmids):
+            if any(p not in blocked_ids and p not in excluded for p in pmids):
                 break
-        records = self.fetch(pmids)
+        records = self.fetch([p for p in pmids if p not in excluded])
 
         kept: list[Evidence] = []
         blocked: list[BlockedEvidence] = []
         for pmid in pmids:
-            if pmid in blocked_ids:
-                blocked.append(BlockedEvidence(pmid=pmid, reason="source_pmid", overlap=1.0))
+            if pmid in excluded:
                 continue
             title, abstract = records.get(pmid, ("", ""))
+            leak, overlap = None, 0.0
+            if pmid in blocked_ids:
+                leak, overlap = "source_pmid", 1.0
+            elif abstract and source_text:
+                overlap = ngram_overlap(abstract, source_text)
+                if overlap >= overlap_threshold:
+                    leak = "near_duplicate"
+            if leak and block:
+                blocked.append(BlockedEvidence(pmid=pmid, reason=leak, overlap=round(overlap, 3)))
+                continue
             if not abstract:
                 continue
-            overlap = ngram_overlap(abstract, source_text) if source_text else 0.0
-            if overlap >= overlap_threshold:
-                blocked.append(BlockedEvidence(pmid=pmid, reason="near_duplicate", overlap=round(overlap, 3)))
-                continue
-            kept.append(Evidence(pmid=pmid, title=title, text=abstract, query=query, rank=len(kept) + 1))
+            kept.append(Evidence(pmid=pmid, title=title, text=abstract, query=query, rank=len(kept) + 1, leak=leak))
             if len(kept) == k:
                 break
         return kept, blocked

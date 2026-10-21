@@ -58,6 +58,9 @@ class LLMResult(BaseModel):
     cached: bool = False
 
 
+LeakReason = Literal["source_pmid", "near_duplicate"]
+
+
 class Evidence(BaseModel):
     """One retrieved PubMed abstract."""
 
@@ -66,13 +69,14 @@ class Evidence(BaseModel):
     text: str
     query: str
     rank: int
+    leak: Optional[LeakReason] = None  # set only when blocking is off (ablation): this abstract leaks the source
 
 
 class BlockedEvidence(BaseModel):
     """A retrieved abstract that was removed to prevent source leakage."""
 
     pmid: str
-    reason: Literal["source_pmid", "near_duplicate"]
+    reason: LeakReason
     overlap: float = 0.0
 
 

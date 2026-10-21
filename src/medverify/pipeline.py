@@ -43,7 +43,16 @@ class VerifierCallError(RuntimeError):
         super().__init__(f"verifier '{name}' ({model.provider}:{model.model}) failed: {type(err).__name__}: {err}")
 
 
-def gather_evidence(item: Item, mode: EvidenceMode, pubmed: Optional[PubMedSearch], k: int, state: VerificationState) -> list[Evidence]:
+def gather_evidence(
+    item: Item,
+    mode: EvidenceMode,
+    pubmed: Optional[PubMedSearch],
+    k: int,
+    state: VerificationState,
+    block: bool = True,
+    retry: bool = True,
+) -> list[Evidence]:
+    """Round-1 evidence: none, the source abstract (setting B), or a PubMed search on the question."""
     if mode == "none":
         state.trace.append("evidence: none")
         state.add_step("evidence", "none")
@@ -62,14 +71,21 @@ def gather_evidence(item: Item, mode: EvidenceMode, pubmed: Optional[PubMedSearc
         k=k,
         block_pmids=[item.pubid] if item.pubid else [],
         block_texts=item.knowledge,
+        block=block,
+        retry=retry,
     )
     state.tool_calls.extend(getattr(pubmed, "calls", [])[calls_before:])
     state.query = kept[0].query if kept else queries[0]
     state.blocked = blocked
-    state.trace.append(f"evidence: pubmed query='{state.query}' kept={len(kept)} blocked={len(blocked)}")
+    leaked = [{"pmid": e.pmid, "leak": e.leak} for e in kept if e.leak]
+    state.trace.append(
+        f"evidence: pubmed query='{state.query}' kept={len(kept)} blocked={len(blocked)}"
+        + (f" leaked={len(leaked)}" if leaked else "")
+    )
     state.add_step(
-        "evidence", "pubmed_search", queries=queries, query=state.query,
+        "evidence", "pubmed_search", round=1, queries=queries if retry else queries[:1], query=state.query,
         kept=[e.pmid for e in kept], blocked=[{"pmid": b.pmid, "reason": b.reason} for b in blocked],
+        leaked=leaked, block=block, retry=retry,
     )
     return kept
 
@@ -201,11 +217,14 @@ def verify_item(
     prompt_style: str = DEFAULT_PROMPT_STYLE,
     reask: bool = True,
     debate: bool = False,
+    block: bool = True,
+    retry: bool = True,
 ) -> VerificationState:
     state = VerificationState(item_id=item.item_id, evidence_mode=evidence_mode)
     state.add_step("orchestrator", "start", verifiers=list(verifiers), evidence_mode=evidence_mode,
-                   prompt_style=prompt_style, min_agree=min_agree, reask=reask, debate=debate)
-    state.evidence = gather_evidence(item, evidence_mode, pubmed, k, state)
+                   prompt_style=prompt_style, min_agree=min_agree, reask=reask, debate=debate,
+                   block=block, retry=retry)
+    state.evidence = gather_evidence(item, evidence_mode, pubmed, k, state, block, retry)
     max_chars = None if evidence_mode == "source" else 1000
     evidence_text = format_evidence(state.evidence, max_chars=max_chars) if state.evidence else None
 
@@ -228,6 +247,8 @@ def run_pipeline(
     prompt_style: str = DEFAULT_PROMPT_STYLE,
     reask: bool = True,
     debate: bool = False,
+    block: bool = True,
+    retry: bool = True,
 ) -> list[VerificationState]:
     done: dict[str, VerificationState] = {}
     if out_path and Path(out_path).exists():
@@ -238,7 +259,10 @@ def run_pipeline(
         if item.item_id in done:
             states.append(done[item.item_id])
             continue
-        state = verify_item(item, verifiers, evidence_mode, pubmed, k, min_agree, prompt_style, reask, debate)
+        state = verify_item(
+            item, verifiers, evidence_mode, pubmed, k, min_agree,
+            prompt_style=prompt_style, reask=reask, debate=debate, block=block, retry=retry,
+        )
         states.append(state)
         if out_path:
             append_jsonl(out_path, state)

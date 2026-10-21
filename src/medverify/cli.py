@@ -45,7 +45,10 @@ def _items(split: str, limit: int | None):
 
 # What a run folder was made with. Runs saved before an option existed count as the Phase 1
 # default for it (and before --prompt existed, the prompt was "words").
-PHASE1_SETUP = {"prompt": "words", "temperature": 0.0, "seed": None, "evidence": "none", "debate": False, "reask": False}
+PHASE1_SETUP = {
+    "prompt": "words", "temperature": 0.0, "seed": None, "evidence": "none",
+    "debate": False, "reask": False, "block": True, "retry": True,
+}
 
 
 def _pipeline_setup(args, models: dict[str, str]) -> dict:
@@ -58,6 +61,8 @@ def _pipeline_setup(args, models: dict[str, str]) -> dict:
         "evidence": args.evidence,
         "debate": args.debate,
         "reask": not args.no_reask,
+        "block": not args.no_block,
+        "retry": not args.no_retry,
     }
 
 
@@ -68,8 +73,9 @@ def _saved_setup(config: dict) -> dict:
     setup = {"models": config.get("models")}
     for key, default in PHASE1_SETUP.items():
         setup[key] = config.get(key, default)
-    if "no_reask" in config:
-        setup["reask"] = not config["no_reask"]
+    for flag in ("reask", "block", "retry"):
+        if f"no_{flag}" in config:
+            setup[flag] = not config[f"no_{flag}"]
     return setup
 
 
@@ -232,6 +238,7 @@ def cmd_pipeline(args):
         states = run_pipeline(
             items, verifiers, args.evidence, pubmed, args.k, args.min_agree, states_path,
             prompt_style=args.prompt, reask=not args.no_reask, debate=args.debate,
+            block=not args.no_block, retry=not args.no_retry,
         )
     except VerifierCallError as err:
         done = len(D.read_jsonl(states_path, VerificationState)) if states_path.exists() else 0
@@ -377,6 +384,10 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--evidence", default="none", choices=["none", "pubmed", "source"])
     s.add_argument("--split", default="dev", choices=["dev", "val", "test"])
     s.add_argument("--k", type=int, default=3, help="evidence abstracts per item")
+    s.add_argument("--no-block", action="store_true",
+                   help="ablation: keep the source abstract and near copies (marked as leaks) instead of blocking them")
+    s.add_argument("--no-retry", action="store_true",
+                   help="use only the first PubMed query, no shorter retry (baseline B5, simple RAG)")
     s.add_argument("--min-agree", type=int, default=2)
     s.add_argument("--prompt", default=DEFAULT_PROMPT_STYLE, choices=list(PROMPT_STYLES),
                    help="verifier prompt style; choose it on the val split")
