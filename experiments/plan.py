@@ -24,7 +24,9 @@ SYSTEM = ("--verifiers", "llama,mistral-local,phi", "--prompt", "reason", "--min
 @dataclass(frozen=True)
 class Run:
     name: str
-    experiment: str  # E1, E2, E3 or E5 (E4 and E6 are analyses of these runs)
+    # E1, E2, E3 or E5. No runs carry E4 or E6: E4 = the gap-wise analyses (H1-H3) of the E1, E3
+    # and E5 runs; E6 = efficiency and reliability of every run.
+    experiment: str
     kind: str  # "baseline" or "pipeline"
     stage: str  # "val" or "test"
     args: tuple[str, ...]  # medverify arguments without --split and --name
