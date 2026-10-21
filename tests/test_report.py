@@ -96,3 +96,114 @@ def test_export_is_deterministic_and_skips_unfinished_runs(in_workspace):
         shutil.rmtree(partial)
     assert target.read_bytes() == before
     assert done["partial"] == ["debate-test-s1 (1/24)"] and "debate-test-s1" not in done["exported"]
+
+
+# ------------------------------------------------------------- statistics
+
+import random  # noqa: E402
+
+from experiments import stats  # noqa: E402
+
+
+def test_mean_sd():
+    assert stats.mean_sd([1, 2, 3, 4]) == (2.5, pytest.approx(1.2909944), 4)
+    assert stats.mean_sd([0.5]) == (0.5, None, 1) and stats.mean_sd([None, None]) == (None, None, 0)
+
+
+def test_mcnemar_exact():
+    assert round(stats.mcnemar_exact(10, 2), 4) == 0.0386
+    assert stats.mcnemar_exact(0, 0) == 1.0 and stats.mcnemar_exact(5, 5) == 1.0
+    # items: A right/B wrong, both right, A right/B wrong, A abstains (left out), both wrong, A wrong/B right
+    result = stats.mcnemar([1, 1, 0, 0, 1, 0], [1, 1, 0, 2, 0, 1], [0, 1, 1, 0, 0, 0])
+    assert result == {"both_answered": 5, "b": 2, "c": 1, "p": 1.0}
+
+
+def test_paired_bootstrap_is_deterministic_and_covers_the_true_difference():
+    rng = random.Random(7)
+    labels = [i % 2 for i in range(400)]
+    a = [t if rng.random() < 0.85 else 1 - t for t in labels]  # A is right 85% of the time
+    b = [t if rng.random() < 0.65 else 1 - t for t in labels]  # B 65%
+    first = stats.paired_bootstrap(labels, a, b, n_resamples=2000)
+    assert first == stats.paired_bootstrap(labels, a, b, n_resamples=2000)  # seed 0: same every time
+    true_acc = sum(x == t for x, t in zip(a, labels)) / 400 - sum(x == t for x, t in zip(b, labels)) / 400
+    assert first["acc_diff"] == pytest.approx(true_acc)
+    assert first["acc_ci_low"] <= true_acc <= first["acc_ci_high"] and first["acc_ci_low"] > 0
+    assert first["f1_ci_low"] <= first["f1_diff"] <= first["f1_ci_high"] and first["f1_p"] < 0.01
+    same = stats.paired_bootstrap(labels, a, a, n_resamples=500)
+    assert same["f1_diff"] == 0 and same["f1_p"] == 1.0
+
+
+# ------------------------------------------------------------- tables
+
+import csv  # noqa: E402
+import shutil  # noqa: E402
+
+from experiments import report  # noqa: E402
+
+
+@pytest.fixture(scope="module")
+def reported(workspace):
+    """The report built once for the test and val splits from the shared workspace."""
+    with pytest.MonkeyPatch.context() as mp:
+        phase2_fixture.patch(mp, workspace)
+        assert report.main(["--split", "test"]) == 0
+        assert report.main(["--split", "val"]) == 0
+    return workspace
+
+
+def read_csv(path):
+    with open(path, encoding="utf-8", newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def test_runs_table_matches_the_source_run_folders(reported):
+    rows = {r["run"]: r for r in read_csv(reported / "results/phase2/tables/runs.csv")}
+    assert set(rows) == {r.name for r in plan.TEST_RUNS} - set(phase2_fixture.SKIPPED)
+    for name, row in rows.items():
+        saved = json.loads((reported / f"results/runs/{name}/metrics.json").read_text())["overall"]
+        assert float(row["f1"]) == pytest.approx(saved["f1"]) and float(row["coverage"]) == pytest.approx(saved["coverage"])
+        assert [float(row["f1_ci_low"]), float(row["f1_ci_high"])] == pytest.approx(saved["f1_ci95"])
+    assert rows["b0-test-s1"]["model_calls"] == "1.0"
+
+
+def test_report_needs_only_results_phase2(reported, tmp_path, monkeypatch):
+    clone = tmp_path / "clone"
+    shutil.copytree(reported / "results/phase2", clone / "results/phase2", ignore=shutil.ignore_patterns("tables", "figures"))
+    phase2_fixture.patch(monkeypatch, clone)  # no results/runs, no data/processed, no experiments/ here
+    assert report.main(["--split", "test"]) == 0
+    for name in ("runs", "main", "overlap", "leakage", "ablation", "significance"):
+        assert (clone / f"results/phase2/tables/{name}.csv").read_text() == (reported / f"results/phase2/tables/{name}.csv").read_text()
+
+
+def test_missing_runs_are_listed_not_invented(reported):
+    tables = reported / "results/phase2/tables"
+    for md in tables.glob("*.md"):
+        assert "Missing runs: debate-test-s1" in md.read_text(encoding="utf-8"), md.name
+    debate = next(r for r in read_csv(tables / "significance.csv") if r["comparison"].startswith("Debate"))
+    assert debate["missing"] == "runs missing" and debate["f1_diff"] == "" and debate["mcnemar_p"] == ""
+    assert not any("debate" in r["run"] for r in read_csv(tables / "runs.csv"))
+
+
+def test_main_overlap_leakage_and_significance(reported):
+    tables = reported / "results/phase2/tables"
+    main = {r["config"]: r for r in read_csv(tables / "main.csv")}
+    assert main["sysA-test"]["n_seeds"] == "3" and main["sysB-test"]["n_seeds"] == "1"
+    assert main["paper-b0"]["f1_mean"] == "0.522" and main["paper-b0"]["recall_mean"] == "" and main["paper-b1"]["source"] == "paper"
+    assert {"b3-llama", "b3-mistral-local", "b3-phi", "sysA-round1", "sysA-forced"} <= set(main)
+    assert float(main["sysA-forced"]["coverage_mean"]) == 1.0
+    overlap = read_csv(tables / "overlap.csv")
+    assert {r["pair_type"] for r in overlap} == {"cross-family", "same model"}
+    assert len([r for r in overlap if r["level"] == "pair" and r["run"] == "sysA-test-s1"]) == 3
+    leak = {(r["run"], r["round"]): r for r in read_csv(tables / "leakage.csv")}
+    assert leak[("sysA-test-s1", "round1")]["kept_leaks"] == "0" and float(leak[("sysA-test-s1", "round1")]["source_pmid_share"]) > 0
+    assert int(leak[("noblock-test-s1", "round1")]["kept_leaks"]) > 0
+    sig = {r["comparison"]: r for r in read_csv(tables / "significance.csv")}
+    a_vs_b0 = sig["System A vs B0"]
+    assert a_vs_b0["n"] == "24" and a_vs_b0["n_seeds"] == "3" and a_vs_b0["mean_diff_f1"] != ""
+    assert sig["System B vs B1"]["mean_diff_f1"] == ""  # System B has one seed: no mean over seeds
+    best = next(k for k in sig if k.startswith("System A round-1 vote vs best single verifier"))
+    assert "chosen on val" in best and sig[best]["f1_diff"] != ""
+    ablation = {r["component"]: r for r in read_csv(tables / "ablation.csv")}
+    assert {"Second round off", "Forced answer (no abstention)", "Vote 3 of 3", "Drop phi (2 of 2 must agree)"} <= set(ablation)
+    assert float(ablation["Vote 2 of 3"]["delta_f1"]) == 0.0
+    assert (reported / "results/phase2/tables/val/runs.csv").exists()

@@ -52,10 +52,12 @@ def patch(mp, root):
     mp.setattr(runner, "FINAL_CONFIG", root / "experiments/final_config.json")
     models = {}
     mp.setattr(llm, "make_model", lambda name, **kw: models.setdefault(name, FakeModel(f"fake-{name}", fake_reply(name))))
-    records = [(p, f"Study {p}", f"An unrelated abstract number {p} about other medicines.") for p in ("2001", "2002", "2003", "2004")]
+    # PMIDs 1000 and 1005 are the source abstracts of two rows: blocked for those items, kept (marked) under --no-block
+    pmids = ["1000", "2001", "2002", "1005", "2003", "2004"]
+    records = [(p, f"Study {p}", f"An unrelated abstract number {p} about other medicines.") for p in pmids]
 
     def fake_pubmed():
-        tool = PubMedSearch(cache_dir=root / "pubmed_cache", session=FakeSession(["2001", "2002", "2003", "2004"], records))
+        tool = PubMedSearch(cache_dir=root / "pubmed_cache", session=FakeSession(pmids, records))
         tool.min_interval = 0
         return tool
 
