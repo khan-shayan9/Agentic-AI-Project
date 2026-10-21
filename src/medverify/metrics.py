@@ -241,6 +241,10 @@ def leakage_summary(states: Iterable[VerificationState]) -> dict:
     }
 
 
+# Ollama runs with a 4096-token context; prompts this long may have been cut.
+CONTEXT_WARN_TOKENS = 3900
+
+
 def efficiency_summary(states: Iterable[VerificationState]) -> dict:
     """Cost per item, summed over all rounds: model calls, tokens, model seconds, PubMed requests."""
     states = list(states)
@@ -257,6 +261,7 @@ def efficiency_summary(states: Iterable[VerificationState]) -> dict:
         "model_calls_per_item": sum(1 + v.reasked for v in verdicts) / n,
         "prompt_tokens_per_item": sum(v.prompt_tokens for v in verdicts) / n,
         "completion_tokens_per_item": sum(v.completion_tokens for v in verdicts) / n,
+        "max_prompt_tokens": max((v.prompt_tokens for v in verdicts), default=0),
         "model_seconds_per_item": sum(v.latency_s for v in verdicts) / n,
         "pubmed_requests_per_item": len(tools) / n,
         "pubmed_uncached_per_item": sum(not c.cached for c in tools) / n,
@@ -295,4 +300,9 @@ def format_summaries(leakage: dict, efficiency: dict) -> str:
             f"no new evidence {e['no_new_evidence_share']:.3f}; re-asks {e['reasks']}, "
             f"abstain {e['abstain_share']:.3f}, unreadable replies {e['unreadable_replies']}",
         ]
+        if e.get("max_prompt_tokens", 0) >= CONTEXT_WARN_TOKENS:
+            lines.append(
+                f"WARNING: the longest prompt had {e['max_prompt_tokens']} tokens. Ollama runs with a 4096-token "
+                "context, so prompts this long may have been cut; check the evidence length."
+            )
     return "\n".join(lines)

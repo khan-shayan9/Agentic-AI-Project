@@ -230,3 +230,24 @@ def test_no_block_run_counts_leaks_into_the_evidence(rows, tmp_path):
         r1 = leakage_summary(states)["round1"]
         assert r1["source_pmid_share"] == 1.0 and r1["leaked_into_evidence_share"] == leaked
         assert r1["mean_clean_abstracts"] == 1.0
+
+
+def test_longest_prompt_is_reported_with_a_context_warning(rows):
+    from medverify.metrics import efficiency_summary, format_summaries, leakage_summary
+    from medverify.schemas import LLMResult
+
+    class Sized(FakeModel):
+        def __init__(self, tokens):
+            super().__init__("sized", lambda m: "Verdict: FACTUAL")
+            self.tokens = tokens
+
+        def chat(self, messages):
+            res = super().chat(messages)
+            return LLMResult(**(res.model_dump() | {"prompt_tokens": self.tokens}))
+
+    items = D.rows_to_items(rows)[:2]
+    for tokens, warned in ((3899, False), (3900, True)):
+        states = run_pipeline(items, {"a": Sized(1200), "b": Sized(tokens)}, min_agree=1)
+        eff = efficiency_summary(states)
+        assert eff["max_prompt_tokens"] == tokens
+        assert ("WARNING: the longest prompt had" in format_summaries(leakage_summary(states), eff)) is warned
