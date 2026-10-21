@@ -389,7 +389,7 @@ def ablation_table(rep: Report) -> list[dict]:
         rows.append({
             "component": component, "reference": ref_name, "n_seeds": c.get("n_seeds"),
             "f1_reference": mean_sd([m["f1"] for m in ref_m])[0], "f1_variant": mean_sd([m["f1"] for m in var_m])[0],
-            "delta_f1": c.get("mean_diff_f1"), "delta_f1_sd": c.get("sd_diff_f1"),
+            "delta_f1": c.get("mean_diff_f1"), "delta_f1_sd": c.get("sd_diff_f1"), "delta_f1_seed1": c.get("f1_diff"),
             "delta_f1_ci_low": c.get("f1_ci_low"), "delta_f1_ci_high": c.get("f1_ci_high"), "delta_f1_p": c.get("f1_p"),
             "delta_acc": c.get("mean_diff_selective_accuracy"), "delta_acc_ci_low": c.get("acc_ci_low"),
             "delta_acc_ci_high": c.get("acc_ci_high"), "delta_coverage": c.get("mean_diff_coverage"),
@@ -397,7 +397,7 @@ def ablation_table(rep: Report) -> list[dict]:
             "seconds_reference": mean_sd([m["model_seconds"] for m in ref_m])[0],
             "seconds_variant": mean_sd([m["model_seconds"] for m in var_m])[0], "missing": None,
         })
-    columns = ["component", "reference", "n_seeds", "f1_reference", "f1_variant", "delta_f1", "delta_f1_sd", "delta_f1_ci_low",
+    columns = ["component", "reference", "n_seeds", "f1_reference", "f1_variant", "delta_f1", "delta_f1_sd", "delta_f1_seed1", "delta_f1_ci_low",
                "delta_f1_ci_high", "delta_f1_p", "delta_acc", "delta_acc_ci_low", "delta_acc_ci_high", "delta_coverage",
                "calls_reference", "calls_variant", "seconds_reference", "seconds_variant", "missing"]
     write_table(rep, "ablation", "Ablations: each component switched off in turn (variant - reference)", rows, columns, notes=(
@@ -422,6 +422,9 @@ def write_all(rep: Report, readme: Optional[Path] = Path("README.md")) -> dict:
     # failure analysis on System A seed 1; with --split val on the chosen val run, to find problems before the test stage
     tables["failures"] = write_failures(rep, rep.runs.get("sysA-test-s1") if rep.split == "test" else rep.chosen_val)
     write_samples(rep)
+    from .figures import write_figures
+
+    tables["figures"] = write_figures(rep, tables)
     return tables
 
 
@@ -432,8 +435,9 @@ def main(argv=None) -> int:
     rep = build(args.split)
     if not rep.items:
         raise SystemExit(f"{(rep.phase2 / f'items_{args.split}.csv').as_posix()} is missing: run `python -m experiments.export` first.")
-    write_all(rep)
-    print(f"Tables written to {rep.out.as_posix()}. Missing runs: {', '.join(rep.missing) or 'none'}")
+    tables = write_all(rep)
+    print(f"Tables written to {rep.out.as_posix()}, figures ({', '.join(tables['figures']) or 'none'}) to "
+          f"{rep.figures.as_posix()}. Missing runs: {', '.join(rep.missing) or 'none'}")
     return 0
 
 

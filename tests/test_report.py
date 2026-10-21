@@ -320,3 +320,20 @@ def test_failure_analysis_cases_and_samples(reported):
     ids = [json.loads(line)["item_id"] for line in lines]
     assert len(ids) == 20 and ids == sorted(ids)
     assert (tables / "val/failures.csv").exists() and any((reported / "logs/cases/val").iterdir())
+
+
+# ------------------------------------------------------------- figures
+
+
+def test_figures_are_written_with_the_agg_backend(reported):
+    import matplotlib
+
+    from experiments import figures  # noqa: F401  (importing it selects Agg)
+
+    assert matplotlib.get_backend().lower() == "agg"
+    folder = reported / "results/phase2/figures"
+    for name in ("f1_by_difficulty", "risk_coverage", "error_overlap", "ablation", "cost"):
+        for ext in ("png", "pdf"):
+            assert (folder / f"{name}.{ext}").stat().st_size > 1000, f"{name}.{ext}"
+    assert (folder / "val/risk_coverage.png").exists()
+    assert figures._pair_label("llama@1 vs llama@2") == "Llama#1-Llama#2"

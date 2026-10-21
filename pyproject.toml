@@ -17,7 +17,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0"]
+dev = ["pytest>=8.0", "matplotlib>=3.7"]
+analysis = ["matplotlib>=3.7"]
 
 [project.scripts]
 medverify = "medverify.cli:main"
