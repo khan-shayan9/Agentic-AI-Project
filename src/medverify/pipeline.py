@@ -35,7 +35,7 @@ from .llm import ChatModel
 from .metrics import aggregate_forced, aggregate_votes
 from .parsing import parse_for_style
 from .prompts import DEFAULT_PROMPT_STYLE, debate_message, format_evidence, reask_message, verifier_messages
-from .schemas import Evidence, Item, LLMResult, Verdict, VerificationState
+from .schemas import Evidence, Item, LLMResult, ToolCall, TraceStep, Verdict, VerificationState
 from .tools.pubmed import PubMedSearch, claim_queries, keyword_queries
 
 EvidenceMode = Literal["none", "pubmed", "source"]
@@ -387,6 +387,62 @@ def run_pipeline(
         if out_path:
             append_jsonl(out_path, state)
     return states
+
+
+# ------------------------------------------------------- items typed by a user
+
+def fetch_source(item: Item, pubmed: Optional[PubMedSearch]) -> tuple[Item, list[ToolCall], str]:
+    """For a user item with a known source PMID: fetch that abstract once and use it as the block text.
+
+    gather_evidence already blocks the PMID itself; with the abstract as block text, near copies
+    (30% or more of its 8-word sequences) are blocked too. Returns the item, the PubMed calls made
+    and the abstract's title. Items that already carry their source text are returned unchanged.
+    """
+    if item.pubid is None or item.knowledge or pubmed is None:
+        return item, [], ""
+    before = len(getattr(pubmed, "calls", []))
+    title, abstract = pubmed.fetch([str(item.pubid)]).get(str(item.pubid), ("", ""))
+    calls = getattr(pubmed, "calls", [])[before:]
+    return item.model_copy(update={"knowledge": [abstract] if abstract else []}), calls, title
+
+
+def _record_source_fetch(state: VerificationState, item: Item, calls: list[ToolCall], title: str) -> None:
+    """Put the source fetch first in the trajectory (it happened before the item's other steps)."""
+    state.tool_calls[:0] = calls
+    found = bool(item.knowledge)
+    state.trace.insert(0, f"source: PMID {item.pubid} " + (f"fetched ({len(item.knowledge[0])} characters) and blocked"
+                                                          if found else "not found on PubMed; only the PMID is blocked"))
+    first = TraceStep(step=1, agent="evidence", action="source_fetch",
+                      detail={"pmid": str(item.pubid), "title": title, "found": found,
+                              "characters": len(item.knowledge[0]) if found else 0})
+    state.steps = [first] + [s.model_copy(update={"step": s.step + 1}) for s in state.steps]
+
+
+def verify_user_item(
+    item: Item,
+    verifiers: dict[str, ChatModel],
+    evidence_mode: EvidenceMode = "pubmed",
+    pubmed: Optional[PubMedSearch] = None,
+    k: int = 3,
+    min_agree: int = 2,
+    prompt_style: str = DEFAULT_PROMPT_STYLE,
+    reask: bool = True,
+    second_round_rule: SecondRound = "off",
+    k2: int = 2,
+) -> VerificationState:
+    """verify_item for a question and answer typed by a user (the CLI, batch mode and the web app).
+
+    If the user gave the answer's source PMID, its abstract is fetched first and blocked (setting A)
+    or used as the evidence (setting B, evidence_mode "source").
+    """
+    item, calls, title = fetch_source(item, pubmed)
+    if evidence_mode == "source" and not item.knowledge:
+        raise ValueError("Evidence mode 'source' needs the answer's source abstract: give its PubMed ID (--pmid).")
+    state = verify_item(item, verifiers, evidence_mode, pubmed, k, min_agree, prompt_style=prompt_style,
+                        reask=reask, second_round_rule=second_round_rule, k2=k2)
+    if calls:  # the source abstract was fetched (PubMedSearch logs every fetch, cached or not)
+        _record_source_fetch(state, item, calls, title)
+    return state
 
 
 # ---------------------------------------------------- views over states
