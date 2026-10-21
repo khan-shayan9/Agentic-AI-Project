@@ -184,3 +184,123 @@ def test_choose_needs_full_validation_runs(workspace):
     save_val_run(runs, "val-sysA-nomaj", 0.90, 0.659)
     with pytest.raises(SystemExit, match="not a full validation run"):
         choose.main([])
+
+
+# ------------------------------------------------------------- state backup
+
+from experiments import state  # noqa: E402
+from medverify.llm import _Cache  # noqa: E402
+
+
+def make_cache(cache_dir, rows, pubmed_files):
+    cache = _Cache(cache_dir / "llm_cache.sqlite")
+    for key, value in rows.items():
+        cache.put(key, value)
+    cache._conn.close()
+    for name, text in pubmed_files.items():
+        (cache_dir / "pubmed" / name).parent.mkdir(parents=True, exist_ok=True)
+        (cache_dir / "pubmed" / name).write_text(text)
+
+
+def cache_rows(cache_dir):
+    import sqlite3
+
+    conn = sqlite3.connect(str(cache_dir / "llm_cache.sqlite"))
+    try:
+        return dict(conn.execute("SELECT key, result FROM calls").fetchall())
+    finally:
+        conn.close()
+
+
+def pubmed_files(cache_dir):
+    folder = cache_dir / "pubmed"
+    return {p.relative_to(folder).as_posix(): p.read_text() for p in folder.rglob("*") if p.is_file()}
+
+
+def test_state_save_and_restore_round_trip(tmp_path):
+    local, backup, final = tmp_path / "cache", tmp_path / "drive/state", tmp_path / "final_config.json"
+    make_cache(local, {f"k{i}": {"text": f"reply {i}"} for i in range(5)}, {"a.txt": "esearch", "sub/b.txt": "efetch"})
+    final.write_text('{"trigger": "split"}')
+    rows, files = cache_rows(local), pubmed_files(local)
+
+    saved = state.save(backup, cache_dir=local, final_config=final)
+    assert len(saved) == 3 and not list(backup.glob("*.tmp"))
+    fresh, fresh_final = tmp_path / "fresh", tmp_path / "fresh_final.json"
+    restored = state.restore(backup, cache_dir=fresh, final_config=fresh_final)
+    assert len(restored) == 3
+    assert cache_rows(fresh) == rows and pubmed_files(fresh) == files
+    assert fresh_final.read_text() == '{"trigger": "split"}'
+
+
+def test_restore_keeps_a_larger_local_cache_and_an_existing_final_config(tmp_path, capsys):
+    small, backup = tmp_path / "small", tmp_path / "state"
+    make_cache(small, {"k0": {"text": "old"}}, {})
+    (tmp_path / "saved_final.json").write_text('{"trigger": "split"}')
+    state.save(backup, cache_dir=small, final_config=tmp_path / "saved_final.json")
+
+    big = tmp_path / "big"
+    make_cache(big, {f"k{i}": {"text": "x" * 2000} for i in range(50)}, {})
+    rows = cache_rows(big)
+    local_final = tmp_path / "local_final.json"
+    local_final.write_text('{"trigger": "no-majority"}')
+    restored = state.restore(backup, cache_dir=big, final_config=local_final)
+    assert cache_rows(big) == rows and "Kept the local llm_cache.sqlite" in capsys.readouterr().out
+    assert local_final.read_text() == '{"trigger": "no-majority"}' and restored == []
+
+
+def test_runner_backs_up_after_each_run_and_after_a_failure(workspace, monkeypatch):
+    tmp, models = workspace
+    calls = []
+    monkeypatch.setattr(state, "save", lambda to, **kw: calls.append(to) or ["llm_cache.sqlite"])
+    base, pipe = jobs_without_pubmed()
+
+    assert runner.run_jobs([base, pipe]) == 0 and calls == []  # no --backup-dir: never
+    for name in ("t-base", "t-pipe"):
+        __import__("shutil").rmtree(tmp / "results/runs" / name)
+    assert runner.run_jobs([base, pipe], backup_dir=tmp / "bk") == 0
+    assert calls == [tmp / "bk", tmp / "bk"]  # once per finished run
+    assert runner.run_jobs([base, pipe], backup_dir=tmp / "bk") == 0 and len(calls) == 2  # skipped runs: nothing new
+
+    def broken(name, **kw):
+        return FakeModel("broken", lambda m: (_ for _ in ()).throw(RuntimeError("Ollama is not running")))
+
+    monkeypatch.setattr(llm, "make_model", broken)
+    fail = runner._job(plan.Run("t-fail", "E5", "pipeline", "test", (*plan.SYSTEM, "--evidence", "none")),
+                       "t-fail", "dev", None, limit=8)
+    assert runner.run_jobs([fail], backup_dir=tmp / "bk") == 1 and len(calls) == 3  # after the failure too
+    assert runner.run_jobs([fail]) == 1 and len(calls) == 3
+
+
+def test_runner_backs_up_when_stopped(workspace, monkeypatch):
+    calls = []
+    monkeypatch.setattr(state, "save", lambda to, **kw: calls.append(to) or [])
+
+    def stopped(name, **kw):
+        return FakeModel("stopped", lambda m: (_ for _ in ()).throw(KeyboardInterrupt()))
+
+    monkeypatch.setattr(llm, "make_model", stopped)
+    base, _ = jobs_without_pubmed()
+    with pytest.raises(KeyboardInterrupt):
+        runner.run_jobs([base], backup_dir=workspace[0] / "bk")
+    assert calls == [workspace[0] / "bk"]
+
+
+def test_backup_failure_is_reported_not_fatal(workspace, monkeypatch, capsys):
+    def full_disk(to, **kw):
+        raise OSError("No space left on device")
+
+    monkeypatch.setattr(state, "save", full_disk)
+    base, _ = jobs_without_pubmed()
+    assert runner.run_jobs([base], backup_dir=workspace[0] / "bk") == 0
+    assert "WARNING: backup to" in capsys.readouterr().out
+
+
+def test_state_command_line(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(runner, "FINAL_CONFIG", tmp_path / "final_config.json")
+    make_cache(tmp_path / "data/cache", {"k": {"text": "r"}}, {"a.txt": "x"})
+    assert state.main(["save", "--to", "bk"]) == 0
+    assert "Saved to bk: llm_cache.sqlite" in capsys.readouterr().out
+    __import__("shutil").rmtree(tmp_path / "data/cache")
+    assert state.main(["restore", "--from", "bk"]) == 0
+    assert cache_rows(tmp_path / "data/cache") == {"k": '{"text": "r"}'}

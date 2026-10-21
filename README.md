@@ -181,11 +181,13 @@ python -m experiments.run --stage val               # val-sysA-off, val-sysA-spl
 python -m experiments.choose                        # pre-registered rule -> experiments/final_config.json
 python -m experiments.run --stage test --only E2    # test runs, one experiment at a time (or all)
 python -m experiments.run --stage test --dry-run    # each command and how many items are left
+python -m experiments.state save --to DIR          # back up the reply and PubMed caches (restore --from DIR)
+#   add --backup-dir DIR to any stage to back up after every run
 ```
 
 **Pre-registered rule** (fixed in [docs/devlog.md](docs/devlog.md) before any Phase 2 run): the second-round trigger is chosen on the validation split only, between `split` and `no-majority`: the highest accuracy on answered items among triggers with coverage >= 0.70, and `no-majority` (cheaper) if the two are within 0.005. "Second round off" is reported as an ablation, not chosen. The test stage refuses to start until `experiments/final_config.json` exists, and `choose` refuses to change it once any test run has results.
 
-**Where results go:** each run in `results/runs/<name>/` (`config.json`, `states.jsonl` or `predictions.jsonl`, `metrics.json`); the chosen trigger with its validation numbers in `experiments/final_config.json` (commit it); the Ollama model versions in `results/runs/ollama_versions.txt`. On Colab, `data/cache` and `results/runs` live in `MyDrive/medverify_phase2`; on Kaggle the last notebook cell saves them as `medverify_state.zip`.
+**Where results go:** each run in `results/runs/<name>/` (`config.json`, `states.jsonl` or `predictions.jsonl`, `metrics.json`); the chosen trigger with its validation numbers in `experiments/final_config.json` (commit it); the Ollama model versions in `results/runs/ollama_versions.txt`. On Colab, `results/runs` lives in `MyDrive/medverify_phase2`; the reply cache stays on local disk, because SQLite is not safe on network or cloud drives ([sqlite.org/useovernet.html](https://sqlite.org/useovernet.html)), and is backed up to `MyDrive/medverify_phase2/state` after every run (`--backup-dir`, `experiments/state.py`). On Kaggle the backup goes to `/kaggle/working/medverify_state`, and the last notebook cell zips it with `results/runs` as `medverify_state.zip`.
 
 ## Tests
 
