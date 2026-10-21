@@ -46,6 +46,8 @@ flowchart LR
     STATE --> M
 ```
 
+The command line (`medverify verify`), CSV batch mode (`medverify batch`) and the Streamlit app all call the same `verify_item` (through `verify_user_item` and `medverify/service.py`), so a user's check runs exactly like an experiment item, with the same caching, re-ask and logging.
+
 ## How the baseline differs from the proposed system
 
 | | Baseline (MedHallu) | Proposed system |

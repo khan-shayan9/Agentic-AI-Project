@@ -13,6 +13,33 @@ Given a medical question and an answer, the system decides whether the answer is
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the diagram and the data contracts.
 
+## Use it
+
+Give a medical question and an answer; MedVerify says **ACCEPT**, **REJECT** or **NOT SURE**, with the PubMed evidence, each verifier's vote and reason, and why it abstained. It needs Ollama with the three models (see [Setup](#setup)) and, for PubMed evidence, internet access (put `NCBI_EMAIL` in `.env`).
+
+```bash
+# one answer
+python -m medverify verify --question "Does a daily walk after dinner lower fasting glucose in prediabetes?" \
+    --answer "Walking after dinner raised fasting glucose." [--pmid 12345678] [--json]
+
+# a CSV file (columns question, answer, optional pmid): results.csv plus results.states.jsonl
+python -m medverify batch --input examples/sample_items.csv --output results.csv
+
+# the web app
+pip install -e ".[app]"
+streamlit run app/streamlit_app.py
+```
+
+| Decision | Meaning |
+| --- | --- |
+| **ACCEPT** | Factual: at least 2 of the 3 verifiers found no hallucination |
+| **REJECT** | Hallucinated: at least 2 of the 3 found wrong or invented information |
+| **NOT SURE** | No verdict had 2 votes (even after a second search, when it runs): sent for human review, with the reason |
+
+If you know the abstract the answer came from, pass its PubMed ID with `--pmid`: that abstract and near copies of it are kept out of the evidence (`--evidence source` uses it as the evidence instead). `--second-round auto` (the default) uses the trigger chosen on the validation split once `experiments/final_config.json` exists, and is off before that; the output says which. All three ways run the same pipeline as the experiments, with cached replies.
+
+**Research prototype, not medical advice.**
+
 ## Repository layout
 
 ```
@@ -26,13 +53,17 @@ src/medverify/
   baseline.py     single-LLM baseline
   pipeline.py     multi-agent system (evidence agent, verifiers, decision step)
   metrics.py      F1 per difficulty, coverage, selective accuracy, error overlap, cost
-  cli.py          the `python -m medverify` commands
+  cli.py          the `python -m medverify` commands (including verify and batch)
+  service.py      verify one item or a CSV for a user (shared by the CLI and the web app)
+  explain.py      plain-English views of a result (decision, votes, reasons, evidence)
 experiments/      Phase 2 run plan (plan.py), runner (run.py), val-only trigger choice (choose.py), cache backup
                   (state.py), export to results/phase2 (export.py) and the report (report.py, gaps.py,
                   failures.py, figures.py, stats.py, facts.py)
 results/          phase1/ (Phase 1 files) and phase2/ (exported runs, tables, figures; committed)
 logs/             agent trajectory samples and representative cases (see logs/README.md)
 notebooks/        Colab notebooks: Phase 1 baseline, and Phase 2 experiments (also runs on Kaggle)
+app/              Streamlit web app (streamlit_app.py) and its pure helpers (helpers.py)
+examples/         sample_items.csv: five made-up items to try `medverify batch`
 tests/            offline tests (fake models, no internet needed)
 docs/             architecture and development log (docs/devlog.md)
 ```
