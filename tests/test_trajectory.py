@@ -95,3 +95,40 @@ def test_views_use_the_right_round(rows):
     assert agreement_confidence(states)[s.item_id] == (0, 1.0)
     assert final_verdicts(states, min_agree=1)[0].verdict == 0
     assert final_verdicts(states, min_agree=1, round=1)[0].verdict == 1
+
+
+def nonsense_then_verdict(messages):
+    """Fake verifier: rambles without a verdict, then answers properly when asked again."""
+    return "Verdict: FACTUAL" if messages[-1]["role"] == "user" and "could not find" in messages[-1]["content"] else "Hmm, hard to say."
+
+
+@pytest.mark.parametrize("reask, expected", [(True, 0), (False, None)])
+def test_unreadable_reply_is_asked_again_once(rows, reask, expected):
+    items = D.rows_to_items(rows)[:1]
+    phi = FakeModel("phi", nonsense_then_verdict)
+    state = run_pipeline(items, {"phi": phi}, min_agree=1, reask=reask)[0]
+    verdict = state.verdicts[0]
+    assert verdict.verdict == expected and verdict.reasked is reask
+    if reask:
+        assert len(phi.calls) == 2 and phi.calls[1][-2] == {"role": "assistant", "content": "Hmm, hard to say."}
+        assert "Verdict: FACTUAL / Verdict: HALLUCINATED" in phi.calls[1][-1]["content"]  # reason style's final line
+        assert verdict.raw_text == "Hmm, hard to say.\n---\nVerdict: FACTUAL"
+        assert "reasked:phi" in state.flags and [s.action for s in state.steps].count("reask") == 1
+    else:
+        assert len(phi.calls) == 1 and state.flags == ["human_review"]
+
+
+def test_no_reask_flag_on_the_command_line(rows, tmp_path, monkeypatch):
+    from medverify import cli
+    import medverify.llm as llm
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(cli, "DATA_DIR", tmp_path / "data/processed")
+    monkeypatch.setattr(cli, "RUNS_DIR", tmp_path / "results/runs")
+    D.write_jsonl(tmp_path / "data/processed/dev.jsonl", rows[:2])
+    monkeypatch.setattr(llm, "make_model", lambda name, **kw: FakeModel(name, nonsense_then_verdict))
+    cli.main(["pipeline", "--split", "dev", "--verifiers", "phi", "--min-agree", "1", "--no-reask", "--name", "off"])
+    cli.main(["pipeline", "--split", "dev", "--verifiers", "phi", "--min-agree", "1", "--name", "on"])
+    off = D.read_jsonl(tmp_path / "results/runs/off/states.jsonl", VerificationState)
+    on = D.read_jsonl(tmp_path / "results/runs/on/states.jsonl", VerificationState)
+    assert {s.verdicts[0].verdict for s in off} == {None} and {s.verdicts[0].verdict for s in on} == {0}

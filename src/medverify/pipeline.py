@@ -25,7 +25,7 @@ from .data import append_jsonl, read_jsonl
 from .llm import ChatModel
 from .metrics import aggregate_votes
 from .parsing import parse_for_style
-from .prompts import DEFAULT_PROMPT_STYLE, format_evidence, verifier_messages
+from .prompts import DEFAULT_PROMPT_STYLE, format_evidence, reask_message, verifier_messages
 from .schemas import Evidence, Item, LLMResult, Verdict, VerificationState
 from .tools.pubmed import PubMedSearch, keyword_queries
 
@@ -105,29 +105,48 @@ def judge(
     style: str,
     round_no: int,
     state: VerificationState,
+    reask: bool = True,
     messages: Optional[list[dict]] = None,
 ) -> Verdict:
     """One verifier's judgement of one item in one round.
 
+    If the reply has no readable verdict and `reask` is on, the same model is asked once
+    more in the same conversation for the final line only; both raw replies are kept.
     `messages` replaces the standard verifier prompt (a later round passes its own).
     """
     messages = messages or verifier_messages(item.question, item.answer, evidence_text, style=style)
     res = _ask(name, model, messages)
     code = parse_for_style(res.text, style)
     _log_reply(state, name, round_no, "judge", messages, res, code)
+    raw, latency, prompt_tokens, completion_tokens, cached = (
+        res.text, res.latency_s, res.prompt_tokens, res.completion_tokens, res.cached
+    )
+    reasked = code is None and reask
+    if reasked:
+        follow_up = messages + [{"role": "assistant", "content": res.text}, reask_message(style)]
+        res2 = _ask(name, model, follow_up)
+        code = parse_for_style(res2.text, style)
+        _log_reply(state, name, round_no, "reask", follow_up, res2, code)
+        raw = f"{res.text}\n---\n{res2.text}"
+        latency += res2.latency_s
+        prompt_tokens += res2.prompt_tokens
+        completion_tokens += res2.completion_tokens
+        cached = cached and res2.cached
+        state.flags.append(f"reasked:{name}")
     state.trace.append(f"verifier {name}: {code}" if round_no == 1 else f"verifier {name} (round {round_no}): {code}")
     return Verdict(
         item_id=item.item_id,
         system=f"verifier:{name}",
         verdict=code,
-        raw_text=res.text,
+        raw_text=raw,
         provider=res.provider,
         model=res.model,
-        latency_s=res.latency_s,
-        prompt_tokens=res.prompt_tokens,
-        completion_tokens=res.completion_tokens,
-        cached=res.cached,
+        latency_s=latency,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        cached=cached,
         round=round_no,
+        reasked=reasked,
     )
 
 
@@ -156,16 +175,17 @@ def verify_item(
     k: int,
     min_agree: int,
     prompt_style: str = DEFAULT_PROMPT_STYLE,
+    reask: bool = True,
 ) -> VerificationState:
     state = VerificationState(item_id=item.item_id, evidence_mode=evidence_mode)
     state.add_step("orchestrator", "start", verifiers=list(verifiers), evidence_mode=evidence_mode,
-                   prompt_style=prompt_style, min_agree=min_agree)
+                   prompt_style=prompt_style, min_agree=min_agree, reask=reask)
     state.evidence = gather_evidence(item, evidence_mode, pubmed, k, state)
     max_chars = None if evidence_mode == "source" else 1000
     evidence_text = format_evidence(state.evidence, max_chars=max_chars) if state.evidence else None
 
     for name, model in verifiers.items():
-        state.verdicts.append(judge(name, model, item, evidence_text, prompt_style, 1, state))
+        state.verdicts.append(judge(name, model, item, evidence_text, prompt_style, 1, state, reask))
     decide(state, min_agree)
     return state
 
@@ -179,6 +199,7 @@ def run_pipeline(
     min_agree: int = 2,
     out_path: Path | None = None,
     prompt_style: str = DEFAULT_PROMPT_STYLE,
+    reask: bool = True,
 ) -> list[VerificationState]:
     done: dict[str, VerificationState] = {}
     if out_path and Path(out_path).exists():
@@ -189,7 +210,7 @@ def run_pipeline(
         if item.item_id in done:
             states.append(done[item.item_id])
             continue
-        state = verify_item(item, verifiers, evidence_mode, pubmed, k, min_agree, prompt_style)
+        state = verify_item(item, verifiers, evidence_mode, pubmed, k, min_agree, prompt_style, reask)
         states.append(state)
         if out_path:
             append_jsonl(out_path, state)

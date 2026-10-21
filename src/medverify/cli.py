@@ -110,7 +110,8 @@ def cmd_pipeline(args):
     old_config.write_text(json.dumps(config, indent=2, default=str))
     try:
         states = run_pipeline(
-            items, verifiers, args.evidence, pubmed, args.k, args.min_agree, states_path, prompt_style=args.prompt
+            items, verifiers, args.evidence, pubmed, args.k, args.min_agree, states_path,
+            prompt_style=args.prompt, reask=not args.no_reask,
         )
     except VerifierCallError as err:
         done = len(D.read_jsonl(states_path, VerificationState)) if states_path.exists() else 0
@@ -256,6 +257,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="verifier prompt style; choose it on the val split")
     s.add_argument("--temperature", type=float, default=0.0)
     s.add_argument("--seed", type=int, help="model seed; 'name@k' verifiers get (seed or 0) * 100 + k")
+    s.add_argument("--no-reask", action="store_true",
+                   help="do not ask a verifier again when its reply has no readable verdict")
     s.add_argument("--max-tokens", type=int, help="reply length cap (default 512; 1024 for gpt-oss)")
     s.add_argument("--limit", type=int)
     s.add_argument("--name")

@@ -144,3 +144,21 @@ def verifier_messages(
         user = f"Evidence:\n{evidence_text}\n\n" + user
     user += tail
     return [{"role": "system", "content": system}, {"role": "user", "content": user}]
+
+
+def verifier_instructions(style: str) -> str:
+    """The verifier instruction text of one prompt style (its hash goes into config.json)."""
+    return _STYLE[style][0]
+
+
+# The final line each style asks for, used when a verifier is asked again.
+_FINAL_LINE = {
+    "digits": "Reply with only a single digit: 0, 1 or 2.",
+    "words": "Reply with only one word: FACTUAL, HALLUCINATED or UNSURE.",
+    "reason": "Reply with only the final line, exactly one of: Verdict: FACTUAL / Verdict: HALLUCINATED / Verdict: UNSURE",
+}
+
+
+def reask_message(style: str) -> dict:
+    """Follow-up turn when a verifier's reply had no readable verdict: ask only for the final line."""
+    return {"role": "user", "content": f"I could not find your verdict. {_FINAL_LINE[style]}"}
