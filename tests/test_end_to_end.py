@@ -183,3 +183,66 @@ def test_repeat_samples_get_their_own_seeds_and_keep_their_names(workspace, monk
     assert all(kw["max_tokens"] == 256 for kw in seen.values())
     states = D.read_jsonl(tmp / "results/runs/sc/states.jsonl")
     assert [v["system"] for v in states[0]["verdicts"]] == ["verifier:llama@1", "verifier:llama@2", "verifier:phi"]
+
+
+@pytest.mark.parametrize("extra, changed", [
+    (["--seed", "1"], "seed"),
+    (["--temperature", "0.3"], "temperature"),
+    (["--debate"], "debate"),
+    (["--no-reask"], "reask"),
+    (["--evidence", "source"], "evidence"),
+])
+def test_resume_refuses_any_setup_change(workspace, extra, changed):
+    cli.main(["prepare", "--test-per-level", "2", "--val-size", "6", "--dev-size", "3"])
+    cli.main(["pipeline", "--split", "dev", "--name", "same"])
+    cli.main(["pipeline", "--split", "dev", "--name", "same"])  # same setup: resumes
+    with pytest.raises(SystemExit, match=f"{changed} .*new --name"):
+        cli.main(["pipeline", "--split", "dev", "--name", "same"] + extra)
+
+
+def test_phase1_run_folder_counts_as_phase1_defaults(workspace):
+    """A config.json written before the new options existed: no seed, no debate, no re-ask."""
+    tmp, models = workspace
+    cli.main(["prepare", "--test-per-level", "2", "--val-size", "6", "--dev-size", "3"])
+    cli.main(["pipeline", "--split", "dev", "--prompt", "reason", "--name", "old", "--no-reask"])
+    config_path = tmp / "results/runs/old/config.json"
+    config = json.loads(config_path.read_text())
+    phase1 = {k: config[k] for k in ("verifiers", "evidence", "split", "k", "min_agree", "prompt", "temperature", "limit", "name", "items", "models")}
+    config_path.write_text(json.dumps(phase1))
+    cli.main(["pipeline", "--split", "dev", "--prompt", "reason", "--name", "old", "--no-reask"])  # resumes
+    with pytest.raises(SystemExit, match="reask False -> True"):
+        cli.main(["pipeline", "--split", "dev", "--prompt", "reason", "--name", "old"])
+
+
+def test_config_records_models_prompt_hash_and_commit(workspace, monkeypatch):
+    import hashlib
+
+    import requests
+
+    from medverify.prompts import verifier_instructions
+
+    tmp, models = workspace
+    models["llama"].provider = "ollama"  # looks like a local Ollama model, so its digest is looked up
+
+    class Tags:
+        def json(self):
+            return {"models": [{"name": "fake-llama", "model": "fake-llama", "digest": "sha256:abc"}]}
+
+    monkeypatch.setattr(requests, "get", lambda url, timeout=None: Tags())
+    cli.main(["prepare", "--test-per-level", "2", "--val-size", "6", "--dev-size", "3"])
+    cli.main(["pipeline", "--split", "dev", "--seed", "4", "--name", "cfg"])
+    config = json.loads((tmp / "results/runs/cfg/config.json").read_text())
+    assert config["setup"]["seed"] == 4 and config["setup"]["reask"] is True
+    assert set(config["model_settings"]) == {"llama", "mistral-local", "phi"}
+    assert config["model_settings"]["llama"]["model_id"] == "fake-llama"
+    assert config["prompt_style"] == "reason"
+    assert config["verifier_instructions_sha256"] == hashlib.sha256(verifier_instructions("reason").encode()).hexdigest()
+    assert config["ollama_digests"] == {"fake-llama": "sha256:abc"}
+    assert "git_commit" in config
+
+    def offline(url, timeout=None):
+        raise requests.ConnectionError("no Ollama here")
+
+    monkeypatch.setattr(requests, "get", offline)
+    cli.main(["pipeline", "--split", "dev", "--name", "cfg2"])  # a failed lookup never stops the run
+    assert json.loads((tmp / "results/runs/cfg2/config.json").read_text())["ollama_digests"] == {"fake-llama": None}

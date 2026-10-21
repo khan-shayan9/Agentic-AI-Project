@@ -5,6 +5,7 @@
   pipeline  run the multi-agent system (verifiers + optional PubMed evidence)
   evaluate  score a run (F1 per difficulty, coverage, cost)
   overlap   error overlap between verifiers (independence check)
+  compare   one table across pipeline runs (e.g. prompt styles on val)
   tune      pick the vote rule on the validation split
 """
 
@@ -40,6 +41,95 @@ def _items(split: str, limit: int | None):
     return items[:limit] if limit else items
 
 
+# ------------------------------------------------------------- run setup
+
+# What a run folder was made with. Runs saved before an option existed count as the Phase 1
+# default for it (and before --prompt existed, the prompt was "words").
+PHASE1_SETUP = {"prompt": "words", "temperature": 0.0, "seed": None, "evidence": "none", "debate": False, "reask": False}
+
+
+def _pipeline_setup(args, models: dict[str, str]) -> dict:
+    """The settings that must match before a run folder can be resumed."""
+    return {
+        "models": models,
+        "prompt": args.prompt,
+        "temperature": args.temperature,
+        "seed": args.seed,
+        "evidence": args.evidence,
+        "debate": args.debate,
+        "reask": not args.no_reask,
+    }
+
+
+def _saved_setup(config: dict) -> dict:
+    """The setup stored in an older config.json, filling in Phase 1 defaults for missing options."""
+    if "setup" in config:
+        return config["setup"]
+    setup = {"models": config.get("models")}
+    for key, default in PHASE1_SETUP.items():
+        setup[key] = config.get(key, default)
+    if "no_reask" in config:
+        setup["reask"] = not config["no_reask"]
+    return setup
+
+
+def _git_commit() -> str | None:
+    """Commit hash of the code that made the run (best effort)."""
+    import subprocess
+
+    try:
+        out = subprocess.run(["git", "rev-parse", "HEAD"], cwd=Path(__file__).parent,
+                             capture_output=True, text=True, timeout=10)
+        return out.stdout.strip() or None
+    except Exception:
+        return None
+
+
+def _ollama_digests(models: dict) -> dict[str, str | None]:
+    """Exact Ollama model versions (digest from GET <host>/api/tags). Best effort: never fails a run."""
+    import requests
+
+    from .llm import PROVIDERS
+
+    wanted = sorted({m.model for m in models.values() if getattr(m, "provider", "") == "ollama"})
+    if not wanted:
+        return {}
+    host = PROVIDERS["ollama"].base_url.rstrip("/").removesuffix("/v1")
+    try:
+        tags = requests.get(f"{host}/api/tags", timeout=10).json().get("models", [])
+        found = {t.get("name"): t.get("digest") for t in tags} | {t.get("model"): t.get("digest") for t in tags}
+    except Exception:
+        found = {}
+    return {name: found.get(name) for name in wanted}
+
+
+def _verifier_record(models: dict, prompt_style: str | None = None) -> dict:
+    """Everything needed to say exactly which models and prompt made a run."""
+    import hashlib
+
+    from .prompts import verifier_instructions
+
+    record = {
+        "model_settings": {
+            name: {
+                "provider": getattr(m, "provider", None),
+                "model_id": m.model,
+                "temperature": getattr(m, "temperature", None),
+                "top_p": getattr(m, "top_p", None),
+                "max_tokens": getattr(m, "max_tokens", None),
+                "seed": getattr(m, "seed", None),
+            }
+            for name, m in models.items()
+        },
+        "git_commit": _git_commit(),
+        "ollama_digests": _ollama_digests(models),
+    }
+    if prompt_style:
+        record["prompt_style"] = prompt_style
+        record["verifier_instructions_sha256"] = hashlib.sha256(verifier_instructions(prompt_style).encode()).hexdigest()
+    return record
+
+
 # ----------------------------------------------------------------- commands
 
 def cmd_prepare(args):
@@ -71,6 +161,7 @@ def cmd_baseline(args):
     model = make_model(args.model, seed=model_seed(args.model, args.seed))
     out = _run_dir(args.name, f"baseline-{args.model}-{args.knowledge}-{args.split}")
     config = vars(args) | {"provider": model.provider, "model_id": model.model, "items": len(items)}
+    config |= _verifier_record({args.model: model})
     (out / "config.json").write_text(json.dumps(config, indent=2, default=str))
     verdicts = run_baseline(items, model, args.knowledge, args.unsure, out / "predictions.jsonl")
     _score(out, items, verdicts)
@@ -96,17 +187,19 @@ def cmd_pipeline(args):
     pubmed = PubMedSearch() if args.evidence == "pubmed" else None
     out = _run_dir(args.name, f"pipeline-{args.evidence}-{args.split}")
     models = {n: m.model for n, m in verifiers.items()}
+    setup = _pipeline_setup(args, models)
     states_path = out / "states.jsonl"
     old_config = out / "config.json"
     if states_path.exists() and states_path.stat().st_size > 0 and old_config.exists():
-        old = json.loads(old_config.read_text())
-        old_setup = (old.get("models"), old.get("prompt", "words"))  # runs before --prompt existed used words
-        if old.get("models") and old_setup != (models, args.prompt):
+        old = _saved_setup(json.loads(old_config.read_text()))
+        changed = [f"{key} {old[key]!r} -> {setup[key]!r}" for key in setup if old[key] != setup[key]]
+        if old["models"] and changed:
             raise SystemExit(
-                f"{out} already holds results from other verifiers or another prompt "
-                f"({old_setup[0]}, prompt '{old_setup[1]}'). Use a new --name so the two runs are not mixed."
+                f"{out} already holds results from other verifiers or another prompt or setting "
+                f"({'; '.join(changed)}). Use a new --name so the two runs are not mixed."
             )
-    config = vars(args) | {"items": len(items), "models": models}
+    config = vars(args) | {"items": len(items), "models": models, "setup": setup}
+    config |= _verifier_record(verifiers, args.prompt)
     old_config.write_text(json.dumps(config, indent=2, default=str))
     try:
         states = run_pipeline(
