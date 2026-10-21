@@ -9,7 +9,7 @@ AI4015 Agentic AI semester project. Base paper: MedHallu (Pandit et al., EMNLP 2
 Given a medical question and an answer, the system decides whether the answer is **factual (0)**, **hallucinated (1)**, or says **not sure (2)**.
 
 - **Baseline:** one LLM judges each answer, exactly as in the MedHallu paper (authors' prompt, settings and metric).
-- **Proposed system:** an evidence agent searches PubMed (with the question's own source abstract blocked). Three verifiers from different model families (Llama 3.1 8B from Meta, Mistral 7B from Mistral AI, Phi-4-mini from Microsoft), all running locally, then judge separately with a word label (FACTUAL, HALLUCINATED or UNSURE), and a vote rule accepts, rejects or abstains.
+- **Proposed system:** an evidence agent searches PubMed (with the question's own source abstract blocked). Three verifiers from different model families (Llama 3.1 8B from Meta, Mistral 7B from Mistral AI, Phi-4-mini from Microsoft), all running locally, then judge separately (a short check, then a FACTUAL, HALLUCINATED or UNSURE verdict), and a vote rule accepts, rejects or abstains. When the votes split, the evidence agent can search again with a query built from the answer's own claim, and the verifiers judge once more, still independently.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the diagram and the data contracts.
 
@@ -89,11 +89,19 @@ python -m medverify pipeline --split val --evidence pubmed --debate --name sysA-
 python -m medverify pipeline --split val --evidence pubmed --no-reask --name sysA-val-noreask
 #   by default an unreadable verifier reply is asked again once; --no-reask turns this off
 #   --max-tokens N caps each verifier reply (default 512)
+python -m medverify pipeline --split val --evidence pubmed --second-round split --k2 2 --name sysA-val-r2split
+python -m medverify pipeline --split val --evidence pubmed --second-round no-majority --name sysA-val-r2nomaj
+#   second evidence round: split = round-1 votes not all the same label; no-majority = round-1 decision is abstain
+python -m medverify evaluate results/runs/sysA-val-r2split --round 1   # the same run with the second round off
+python -m medverify pipeline --split val --evidence pubmed --no-block --name sysA-val-noblock    # ablation 2: let the source leak in
+python -m medverify pipeline --split test --evidence pubmed --no-retry --name b5-test             # baseline B5, simple RAG: first query only
 python -m medverify evaluate results/runs/sysA-val-debate --round 1   # decision from round 1 -> metrics-round1.json
 python -m medverify evaluate results/runs/sysA-test --forced          # forced answer, no abstention -> metrics-forced.json
 ```
 
-`--seed` is sent to Ollama (and Groq) and added to the reply cache key only when set, so all Phase 1 cache entries still match. A run folder can only be resumed with the same models, prompt, temperature, seed, evidence, debate and re-ask settings; folders from before these options existed count as Phase 1 settings (no seed, no debate, no re-ask). `config.json` also records each model's exact settings, the hash of the verifier instructions, the git commit and the Ollama model digests. `overlap`, `compare` and the single-verifier tables always use round-1 (independent) verdicts. Every pipeline state logs structured steps (`steps`), PubMed tool calls (`tool_calls`) and flags such as `human_review` (the system abstained) or `reasked:phi`.
+`--seed` is sent to Ollama (and Groq) and added to the reply cache key only when set, so all Phase 1 cache entries still match. A run folder can only be resumed with the same models, prompt, temperature, seed, evidence, debate and re-ask settings; folders from before these options existed count as Phase 1 settings (no seed, no debate, no re-ask). `config.json` also records each model's exact settings, the hash of the verifier instructions, the git commit and the Ollama model digests. `overlap`, `compare` and the single-verifier tables always use round-1 (independent) verdicts. Every pipeline state logs structured steps (`steps`), PubMed tool calls (`tool_calls`) and flags such as `human_review` (the system abstained), `reasked:phi` or `no_new_evidence`.
+
+`--second-round` is `off` by default; its final setting is chosen on the validation split only. It works in PubMed mode only (for `none` and `source` it is logged as skipped) and cannot be combined with `--debate`. The claim query uses the words in the answer that are not in the question, plus the top two question words to keep the topic, and tries shorter versions (about 4+2, 3+1, 2+1 words). The source stays blocked and abstracts already used are skipped; if nothing new is found the round-1 decision stands (flag `no_new_evidence`, no extra model calls). `--no-block` keeps the source and near copies but marks them (`Evidence.leak`), to measure how often the source would leak in. `--no-retry` uses only the first PubMed query. All four are part of the run setup check. `evaluate` on a pipeline run also reports **leakage** (per round: how often PubMed returned the source or near copies, clean abstracts per item, items with no evidence) and **efficiency** (per item over all rounds: model calls, tokens, model seconds, PubMed requests, share sent to round 2, re-asks, abstentions, unreadable replies).
 
 Each run folder holds `config.json`, the raw outputs (`predictions.jsonl` or `states.jsonl`), and `metrics.json`.
 
@@ -145,6 +153,13 @@ In our first validation run (not saved), Phi-4-mini mostly replied "not sure" wi
 | Cost | About 12 seconds of model time per answer for the three verifiers on a T4 GPU | `sysA-val-reason-states.jsonl` |
 
 These are early validation results. So far the three model families share many mistakes, and the vote does not beat the best single verifier. Phase 2 tests this on the test split against the self-consistency control (B4).
+
+## Changes since Phase 1
+
+- **Verifier 2 is Mistral 7B, run locally through Ollama**, because the free Mistral API allowed 0 requests per minute on our account (error 429 on the first call). Same model family, no rate limit.
+- **The verifier prompt is `reason`** (a short check, then `Verdict: ...`), chosen on the validation split over `digits` and `words` (vote F1 0.680 vs 0.595 and 0.447).
+- **The vote rule stays at 2 of 3**, although `tune` preferred 1 of 3: 2 of 3 is a true majority, it abstains more often so gap 3 can be measured, and its accuracy on answered items is within 1-2 answers of 1 of 3 (0.646 vs 0.654).
+- **New in Phase 2:** a second evidence round with claim queries when the votes split (the agentic loop from the proposal), one re-ask when a reply has no readable verdict, a debate ablation, seeds for repeat runs, structured trajectories (`steps`) and PubMed tool-call logs (`tool_calls`), leakage and efficiency summaries, and a resume check for baseline folders. See [docs/devlog.md](docs/devlog.md).
 
 ## Tests
 
