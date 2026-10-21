@@ -132,3 +132,70 @@ def test_no_reask_flag_on_the_command_line(rows, tmp_path, monkeypatch):
     off = D.read_jsonl(tmp_path / "results/runs/off/states.jsonl", VerificationState)
     on = D.read_jsonl(tmp_path / "results/runs/on/states.jsonl", VerificationState)
     assert {s.verdicts[0].verdict for s in off} == {None} and {s.verdicts[0].verdict for s in on} == {0}
+
+
+def debating_verifier(first_reply, second_reply):
+    """Fake verifier: `first_reply` in round 1, `second_reply` once it has seen the other reviewers."""
+    return lambda messages: second_reply if "Other independent reviewers" in messages[-1]["content"] else first_reply
+
+
+def debate_panel():
+    long_reasoning = "The dose in the answer does not match the trial. " * 12 + "\nVerdict: FACTUAL"
+    return {
+        "llama": FakeModel("fake-llama", debating_verifier("Wrong dose.\nVerdict: HALLUCINATED", "Verdict: FACTUAL")),
+        "mistral-local": FakeModel("fake-mistral", debating_verifier("Wrong dose.\nVerdict: HALLUCINATED", "Verdict: FACTUAL")),
+        "phi": FakeModel("fake-phi", debating_verifier(long_reasoning, "Still fine.\nVerdict: FACTUAL")),
+    }
+
+
+def test_debate_decides_on_round_two_and_keeps_round_one(rows):
+    items = D.rows_to_items(rows)[:2]
+    normal, debating = debate_panel(), debate_panel()
+    run_pipeline(items, normal, min_agree=2)
+    states = run_pipeline(items, debating, min_agree=2, debate=True)
+    s = states[0]
+
+    assert [v.verdict for v in s.first_round()] == [1, 1, 0] and [v.verdict for v in s.last_round()] == [0, 0, 0]
+    assert s.rounds == 2 and s.final_round1 == 1 and s.final == 0
+    assert final_verdicts(states)[0].verdict == 0 and final_verdicts(states, round=1)[0].verdict == 1
+    assert verifier_verdicts(states)["llama"][0].verdict == 1 and len(verifier_verdicts(states)["llama"]) == 2
+    assert [st.action for st in s.steps].count("judge") == 6 and any(st.action == "debate" for st in s.steps)
+
+    # Round 1 of a debate run sends exactly the messages of a normal run (so it comes from the cache).
+    for name in normal:
+        assert debating[name].calls[0] == normal[name].calls[0]
+
+    # Round 2: own round-1 reply, then the OTHER reviewers, anonymised, reasoning cut to 400 characters.
+    phi_turn = debating["phi"].calls[1]
+    assert phi_turn[-2] == {"role": "assistant", "content": s.first_round()[2].raw_text}
+    shown = phi_turn[-1]["content"]
+    assert "Reviewer A: HALLUCINATED" in shown and "Reviewer B: HALLUCINATED" in shown and "Reviewer C" not in shown
+    assert "llama" not in shown.lower() and "mistral" not in shown.lower() and "fake" not in shown
+    llama_turn = debating["llama"].calls[1][-1]["content"]
+    assert "Reviewer B: FACTUAL" in llama_turn and " ..." in llama_turn
+    reasoning = llama_turn.split("Reviewer B: FACTUAL\nReasoning: ")[1].split(" ...")[0]
+    assert len(reasoning) == 400
+    assert llama_turn.rstrip().endswith("Verdict: UNSURE")  # same reply format as the prompt style
+
+
+def test_evaluate_round_and_forced_are_saved_next_to_metrics(rows, tmp_path, monkeypatch):
+    from medverify import cli
+    import medverify.llm as llm
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(cli, "DATA_DIR", tmp_path / "data/processed")
+    monkeypatch.setattr(cli, "RUNS_DIR", tmp_path / "results/runs")
+    D.write_jsonl(tmp_path / "data/processed/dev.jsonl", rows[:3])
+    panel = debate_panel()
+    monkeypatch.setattr(llm, "make_model", lambda name, **kw: panel[name])
+    cli.main(["pipeline", "--split", "dev", "--debate", "--name", "deb"])
+    run = tmp_path / "results/runs/deb"
+    saved = json.loads((run / "metrics.json").read_text())
+    cli.main(["evaluate", str(run), "--round", "1"])
+    cli.main(["evaluate", str(run), "--forced"])
+    assert json.loads((run / "metrics.json").read_text()) == saved  # not overwritten
+    round1 = json.loads((run / "metrics-round1.json").read_text())["overall"]
+    forced = json.loads((run / "metrics-forced.json").read_text())["overall"]
+    assert saved["overall"]["precision"] == 0.0  # round 2: everyone says factual
+    assert round1["recall"] == 1.0  # round 1: majority says hallucinated
+    assert forced["coverage"] == 1.0 and forced["abstain_rate"] == 0.0

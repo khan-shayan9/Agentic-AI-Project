@@ -111,7 +111,7 @@ def cmd_pipeline(args):
     try:
         states = run_pipeline(
             items, verifiers, args.evidence, pubmed, args.k, args.min_agree, states_path,
-            prompt_style=args.prompt, reask=not args.no_reask,
+            prompt_style=args.prompt, reask=not args.no_reask, debate=args.debate,
         )
     except VerifierCallError as err:
         done = len(D.read_jsonl(states_path, VerificationState)) if states_path.exists() else 0
@@ -138,9 +138,9 @@ def _load_run(run: Path):
     raise SystemExit(f"No results in {run}: the run did not finish any item. Run it again first.")
 
 
-def _score(out: Path, items, verdicts):
+def _score(out: Path, items, verdicts, filename: str = "metrics.json"):
     result = evaluate(items, verdicts)
-    (out / "metrics.json").write_text(json.dumps(result, indent=2))
+    (out / filename).write_text(json.dumps(result, indent=2))
     print(format_table(result))
     print(f"Saved to {out}")
 
@@ -150,9 +150,14 @@ def cmd_evaluate(args):
 
     config, items, states, verdicts = _load_run(args.run)
     if states is None:
+        if args.forced or args.round:
+            raise SystemExit("--forced and --round need a pipeline run (states.jsonl)")
         _score(Path(args.run), items, verdicts)
         return
-    _score(Path(args.run), items, final_verdicts(states, args.min_agree))
+    # The forced rule and other rounds are saved next to metrics.json, never over it.
+    suffix = ("-forced" if args.forced else "") + (f"-round{args.round}" if args.round else "")
+    system = final_verdicts(states, args.min_agree, round=args.round, forced=args.forced)
+    _score(Path(args.run), items, system, f"metrics{suffix}.json")
     for name, vs in verifier_verdicts(states).items():
         print(f"\n-- verifier {name} on its own --")
         print(format_table(evaluate(items, vs, n_boot=0)))
@@ -257,6 +262,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="verifier prompt style; choose it on the val split")
     s.add_argument("--temperature", type=float, default=0.0)
     s.add_argument("--seed", type=int, help="model seed; 'name@k' verifiers get (seed or 0) * 100 + k")
+    s.add_argument("--debate", action="store_true",
+                   help="ablation: a second round where each verifier sees the others' verdicts and reasoning")
     s.add_argument("--no-reask", action="store_true",
                    help="do not ask a verifier again when its reply has no readable verdict")
     s.add_argument("--max-tokens", type=int, help="reply length cap (default 512; 1024 for gpt-oss)")
@@ -267,6 +274,9 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("evaluate", help="score a finished run")
     s.add_argument("run")
     s.add_argument("--min-agree", type=int, help="re-apply a different vote rule")
+    s.add_argument("--forced", action="store_true",
+                   help="forced-answer rule: majority, no abstention, ties go to the first verifier")
+    s.add_argument("--round", type=int, help="score one round's decision (1 = before the debate)")
     s.set_defaults(func=cmd_evaluate)
 
     s = sub.add_parser("overlap", help="error overlap between verifiers")

@@ -180,3 +180,17 @@ def format_table(result: dict) -> str:
     if ci:
         lines.append(f"overall F1 95% interval: {ci[0]:.3f} - {ci[1]:.3f}")
     return "\n".join(lines)
+
+
+def aggregate_forced(codes: Sequence[Optional[int]], tie_break_code: Optional[int]) -> int:
+    """Forced-answer rule (no abstention), the comparison for gap 3.
+
+    Majority of the 0/1 votes. On a tie, or when nobody voted 0 or 1, use `tie_break_code`
+    (the first verifier's vote, i.e. Llama); if that is not 0/1 either, return 1 (flag the
+    answer as hallucinated, the safer choice). Never returns 2.
+    """
+    zeros = sum(1 for c in codes if c == 0)
+    ones = sum(1 for c in codes if c == 1)
+    if ones != zeros:
+        return 1 if ones > zeros else 0
+    return tie_break_code if tie_break_code in (0, 1) else 1

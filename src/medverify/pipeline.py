@@ -8,6 +8,9 @@ For each item:
   3. Decision step: vote with abstention. A label is accepted only when at least
      `min_agree` verifiers choose it; otherwise the system abstains (2).
 
+Debate ablation (`debate=True`): after round 1 each verifier sees the others' verdicts and
+reasoning (anonymised) and judges again; the decision then uses these round-2 verdicts.
+
 Every step is logged in a VerificationState (the agent trajectory: structured steps,
 tool calls and verdicts), so vote rules can be re-applied later without new model calls.
 """
@@ -23,9 +26,9 @@ from tqdm import tqdm
 
 from .data import append_jsonl, read_jsonl
 from .llm import ChatModel
-from .metrics import aggregate_votes
+from .metrics import aggregate_forced, aggregate_votes
 from .parsing import parse_for_style
-from .prompts import DEFAULT_PROMPT_STYLE, format_evidence, reask_message, verifier_messages
+from .prompts import DEFAULT_PROMPT_STYLE, debate_message, format_evidence, reask_message, verifier_messages
 from .schemas import Evidence, Item, LLMResult, Verdict, VerificationState
 from .tools.pubmed import PubMedSearch, keyword_queries
 
@@ -150,6 +153,27 @@ def judge(
     )
 
 
+def debate_round(
+    item: Item,
+    verifiers: dict[str, ChatModel],
+    evidence_text: Optional[str],
+    style: str,
+    state: VerificationState,
+    reask: bool = True,
+) -> None:
+    """Round 2: each verifier continues its own round-1 conversation, sees the OTHER verifiers'
+    verdicts and reasoning (as Reviewer A, B, ...), and gives its own check and verdict again."""
+    first = {v.system.split(":", 1)[-1]: v for v in state.first_round()}
+    state.add_step("orchestrator", "debate", round=2, verifiers=list(verifiers))
+    for name, model in verifiers.items():
+        others = [(v.verdict, v.raw_text) for other, v in first.items() if other != name]
+        messages = verifier_messages(item.question, item.answer, evidence_text, style=style) + [
+            {"role": "assistant", "content": first[name].raw_text},
+            debate_message(others, style),
+        ]
+        state.verdicts.append(judge(name, model, item, evidence_text, style, 2, state, reask, messages=messages))
+
+
 def decide(state: VerificationState, min_agree: int) -> int:
     """Vote on the last round's verdicts; also save the decision from round 1 alone."""
     last = state.last_round()
@@ -176,16 +200,19 @@ def verify_item(
     min_agree: int,
     prompt_style: str = DEFAULT_PROMPT_STYLE,
     reask: bool = True,
+    debate: bool = False,
 ) -> VerificationState:
     state = VerificationState(item_id=item.item_id, evidence_mode=evidence_mode)
     state.add_step("orchestrator", "start", verifiers=list(verifiers), evidence_mode=evidence_mode,
-                   prompt_style=prompt_style, min_agree=min_agree, reask=reask)
+                   prompt_style=prompt_style, min_agree=min_agree, reask=reask, debate=debate)
     state.evidence = gather_evidence(item, evidence_mode, pubmed, k, state)
     max_chars = None if evidence_mode == "source" else 1000
     evidence_text = format_evidence(state.evidence, max_chars=max_chars) if state.evidence else None
 
     for name, model in verifiers.items():
         state.verdicts.append(judge(name, model, item, evidence_text, prompt_style, 1, state, reask))
+    if debate:
+        debate_round(item, verifiers, evidence_text, prompt_style, state, reask)
     decide(state, min_agree)
     return state
 
@@ -200,6 +227,7 @@ def run_pipeline(
     out_path: Path | None = None,
     prompt_style: str = DEFAULT_PROMPT_STYLE,
     reask: bool = True,
+    debate: bool = False,
 ) -> list[VerificationState]:
     done: dict[str, VerificationState] = {}
     if out_path and Path(out_path).exists():
@@ -210,7 +238,7 @@ def run_pipeline(
         if item.item_id in done:
             states.append(done[item.item_id])
             continue
-        state = verify_item(item, verifiers, evidence_mode, pubmed, k, min_agree, prompt_style, reask)
+        state = verify_item(item, verifiers, evidence_mode, pubmed, k, min_agree, prompt_style, reask, debate)
         states.append(state)
         if out_path:
             append_jsonl(out_path, state)
@@ -223,8 +251,11 @@ def _round_verdicts(s: VerificationState, round_no: Optional[int]) -> list[Verdi
     return s.last_round() if round_no is None else s.round_verdicts(round_no)
 
 
-def _decision(s: VerificationState, min_agree: Optional[int], round_no: Optional[int]):
-    """The saved decision, or a vote rule re-applied to one round."""
+def _decision(s: VerificationState, min_agree: Optional[int], round_no: Optional[int], forced: bool):
+    """The saved decision, or a vote rule (or the forced rule) re-applied to one round."""
+    if forced:
+        codes = [v.verdict for v in _round_verdicts(s, round_no)]
+        return aggregate_forced(codes, codes[0] if codes else None)
     if min_agree is not None:
         return aggregate_votes([v.verdict for v in _round_verdicts(s, round_no)], min_agree)
     if round_no is None or round_no == s.rounds:
@@ -235,12 +266,16 @@ def _decision(s: VerificationState, min_agree: Optional[int], round_no: Optional
 
 
 def final_verdicts(
-    states: list[VerificationState], min_agree: Optional[int] = None, round: Optional[int] = None
+    states: list[VerificationState],
+    min_agree: Optional[int] = None,
+    round: Optional[int] = None,
+    forced: bool = False,
 ) -> list[Verdict]:
     """System-level verdicts, offline (no model calls).
 
     Default: the saved decision (from the last round). `min_agree` re-applies a vote rule;
-    `round` picks the round (1 = the independent verdicts, before any debate).
+    `round` picks the round (1 = the independent verdicts, before any debate); `forced`
+    applies the forced-answer rule (majority, never abstains; ties go to the first verifier).
     """
     out = []
     for s in states:
@@ -248,7 +283,7 @@ def final_verdicts(
             Verdict(
                 item_id=s.item_id,
                 system="pipeline",
-                verdict=_decision(s, min_agree, round),
+                verdict=_decision(s, min_agree, round, forced),
                 raw_text="",
                 provider="pipeline",
                 model="+".join(v.model for v in s.first_round()),

@@ -1,7 +1,7 @@
 import pytest
 
 from medverify.data import rows_to_items
-from medverify.metrics import aggregate_votes, error_overlap, evaluate, prf, risk_coverage
+from medverify.metrics import aggregate_forced, aggregate_votes, error_overlap, evaluate, prf, risk_coverage
 from medverify.schemas import Verdict
 
 
@@ -62,3 +62,12 @@ def test_risk_coverage_is_ordered_by_confidence(rows):
     curve = risk_coverage(items, scored)
     assert [p["coverage"] for p in curve] == [0.25, 0.5, 0.75, 1.0]
     assert curve[1]["risk"] == 0.0 and curve[2]["risk"] == pytest.approx(1 / 3)
+
+
+def test_forced_rule_never_abstains():
+    assert aggregate_forced([1, 1, 0], tie_break_code=0) == 1  # majority
+    assert aggregate_forced([0, 2, None], tie_break_code=2) == 0  # majority of the 0/1 votes
+    assert aggregate_forced([1, 0, 2], tie_break_code=0) == 0  # tie -> the first verifier (Llama)
+    assert aggregate_forced([2, 1, 0], tie_break_code=2) == 1  # tie and Llama unsure -> flag as hallucinated
+    assert aggregate_forced([2, 2, None], tie_break_code=2) == 1  # all unsure -> flag as hallucinated
+    assert aggregate_forced([None, 2, 2], tie_break_code=None) == 1

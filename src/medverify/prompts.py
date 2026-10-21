@@ -162,3 +162,33 @@ _FINAL_LINE = {
 def reask_message(style: str) -> dict:
     """Follow-up turn when a verifier's reply had no readable verdict: ask only for the final line."""
     return {"role": "user", "content": f"I could not find your verdict. {_FINAL_LINE[style]}"}
+
+
+# ------------------------------------------------------------------ debate (ablation)
+
+_CODE_WORD = {0: "FACTUAL", 1: "HALLUCINATED", 2: "UNSURE", None: "no clear verdict"}
+_DEBATE_FORMAT = {
+    "digits": "Reply with a single digit: 0, 1 or 2. Nothing else.",
+    "words": "Reply with exactly one word: FACTUAL, HALLUCINATED or UNSURE. Nothing else.",
+    "reason": "First write one or two short sentences checking the answer's main claim.\n"
+              "Then write the last line exactly as one of: Verdict: FACTUAL / Verdict: HALLUCINATED / Verdict: UNSURE",
+}
+DEBATE_INTRO = "Other independent reviewers checked the same answer. Their verdicts and reasoning:"
+DEBATE_REASONING_CHARS = 400
+
+
+def debate_message(others: Sequence[tuple[Optional[int], str]], style: str) -> dict:
+    """Round-2 turn of the debate ablation: the OTHER reviewers' verdicts and reasoning.
+
+    `others` = (verdict code, raw reply) per other verifier. Reviewers are anonymised as
+    Reviewer A, B, ... (no model names) and each reasoning is cut to 400 characters.
+    """
+    blocks = []
+    for letter, (code, reasoning) in zip("ABCDEFGHIJ", others):
+        text = reasoning.strip()
+        if len(text) > DEBATE_REASONING_CHARS:
+            text = text[:DEBATE_REASONING_CHARS] + " ..."
+        blocks.append(f"Reviewer {letter}: {_CODE_WORD[code]}\nReasoning: {text}")
+    content = (f"{DEBATE_INTRO}\n\n" + "\n\n".join(blocks)
+               + f"\n\nConsider their points, then give your own judgement.\n{_DEBATE_FORMAT[style]}")
+    return {"role": "user", "content": content}
