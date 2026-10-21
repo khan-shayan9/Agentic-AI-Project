@@ -29,7 +29,7 @@ src/medverify/
   cli.py          the `python -m medverify` commands
 notebooks/        Colab notebook that runs the baseline on a free GPU
 tests/            offline tests (fake models, no internet needed)
-docs/             architecture
+docs/             architecture and development log (docs/devlog.md)
 ```
 
 ## Setup
@@ -80,7 +80,20 @@ python -m medverify pipeline --split test --evidence source --min-agree 2 --name
 # Analysis
 python -m medverify evaluate results/runs/sysA-test          # system + each verifier alone
 python -m medverify overlap  results/runs/sysA-test          # do the verifiers share mistakes?
+
+# Phase 2 options
+python -m medverify baseline --model llama --split test --seed 1 --name llama-test-none-s1    # repeat runs: one seed each
+python -m medverify pipeline --split val --evidence pubmed --verifiers llama@1,llama@2,llama@3 --seed 1 --name sc-val
+#   name@k = the same model again as sample k, with seed (seed or 0) * 100 + k (self-consistency control)
+python -m medverify pipeline --split val --evidence pubmed --debate --name sysA-val-debate   # ablation: round 2 after seeing the others
+python -m medverify pipeline --split val --evidence pubmed --no-reask --name sysA-val-noreask
+#   by default an unreadable verifier reply is asked again once; --no-reask turns this off
+#   --max-tokens N caps each verifier reply (default 512)
+python -m medverify evaluate results/runs/sysA-val-debate --round 1   # decision from round 1 -> metrics-round1.json
+python -m medverify evaluate results/runs/sysA-test --forced          # forced answer, no abstention -> metrics-forced.json
 ```
+
+`--seed` is sent to Ollama (and Groq) and added to the reply cache key only when set, so all Phase 1 cache entries still match. A run folder can only be resumed with the same models, prompt, temperature, seed, evidence, debate and re-ask settings; folders from before these options existed count as Phase 1 settings (no seed, no debate, no re-ask). `config.json` also records each model's exact settings, the hash of the verifier instructions, the git commit and the Ollama model digests. `overlap`, `compare` and the single-verifier tables always use round-1 (independent) verdicts. Every pipeline state logs structured steps (`steps`), PubMed tool calls (`tool_calls`) and flags such as `human_review` (the system abstained) or `reasked:phi`.
 
 Each run folder holds `config.json`, the raw outputs (`predictions.jsonl` or `states.jsonl`), and `metrics.json`.
 
@@ -89,7 +102,7 @@ Each run folder holds `config.json`, the raw outputs (`predictions.jsonl` or `st
 - **Splits:** from the 1,000 human-annotated rows (`pqa_labeled`). Test = 300 rows (100 easy, 100 medium, 100 hard); val = 100 rows (only for tuning); dev = 20 rows (debugging). Fixed seed 42.
 - **Two items per row:** each row's true and hallucinated answers are both judged (600 test items, half hallucinated). The authors' code shows one random answer per row; ours gives the same balance without randomness.
 - **Faithful baseline:** prompts, temperature (0.3) and top_p (0.95) match the MedHallu code. The paper's main table uses a version without "not sure" that is not in the released code; ours removes those sentences from their prompt.
-- **Parsing:** the authors' parser reads any reply containing "not" as hallucinated, so "not sure" became 1. We use a stricter parser and count unparseable replies separately. `parsing.parse_authors` is kept for comparison. Verifier prompt styles (`--prompt`): `digits` (0/1/2), `words` (FACTUAL/HALLUCINATED/UNSURE) and `reason` (a short check, then `Verdict: ...`). On the 40 dev answers, digits made Phi-4-mini reply "2" while its own explanation called the answer wrong, and words made the models rarely say HALLUCINATED, so the style is chosen on the validation split with `compare`. On the 200 validation answers (setting A) the vote reached F1 0.595 with digits (coverage 0.66), 0.444 with words (0.78) and 0.683 with reason (0.90), so `reason` is the default.
+- **Parsing:** the authors' parser reads any reply containing "not" as hallucinated, so "not sure" became 1. We use a stricter parser and count unparseable replies separately. `parsing.parse_authors` is kept for comparison. Verifier prompt styles (`--prompt`): `digits` (0/1/2), `words` (FACTUAL/HALLUCINATED/UNSURE) and `reason` (a short check, then `Verdict: ...`). On the 40 dev answers, digits made Phi-4-mini reply "2" while its own explanation called the answer wrong, and words made the models rarely say HALLUCINATED, so the style is chosen on the validation split with `compare`. On the 200 validation answers (setting A) the vote reached F1 0.595 with digits (coverage 0.665), 0.447 with words (0.795) and 0.680 with reason (0.890), so `reason` is the default.
 - **Leakage control:** each question's source PubMed ID comes from PubMedQA. The evidence agent drops that PMID and any abstract sharing 30% or more of its 8-word sequences.
 - **Metrics:** precision, recall and F1 with "hallucinated" as the positive class, after dropping "not sure" (as in MedHallu), overall and per difficulty, with a bootstrap 95% interval. Also coverage, accuracy on answered items, risk-coverage curve, error overlap between verifiers, tokens and latency.
 
