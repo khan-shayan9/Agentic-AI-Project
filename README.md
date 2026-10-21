@@ -171,12 +171,12 @@ Every Phase 2 run is defined once in [`experiments/plan.py`](experiments/plan.py
 | E1 Other baselines | `b4-test-s1..s3` (B4: Llama 3.1 8B sampled 3 times at temperature 0.7, vote 2 of 3), `b5-test-s1` (B5: simple RAG, first PubMed query only); B3 = each verifier alone, read from `sysA-test-s1` round 1 | Whether three model families beat three samples of one model, plain retrieval, and each verifier alone |
 | E2 MedHallu baselines | `b0-`, `b1-`, `b2-test-s1..s3` (no knowledge, source abstract, "not sure" allowed) | The paper's settings reproduced, with the spread over three seeds |
 | E3 Proposed system | `sysA-test-s1..s3` (PubMed, source blocked, chosen second-round trigger), `sysB-test-s1` (source abstract given) | The main result, against B0-B5 |
-| E4 Gap-wise experiments (analysis of the E1, E3 and E5 runs; no extra runs) | **Gap 1 / H1:** round-1 three-family vote of `sysA-test-s1..s3` vs B3 (each verifier alone) and B4 (`b4-test-s1..s3`), plus `overlap` for every verifier pair: cross-family pairs vs the `llama@1..3` pairs.<br>**Gap 2 / H2:** System A vs B0 and System B vs B1 (F1 overall and per difficulty), share of searches where the source was found and blocked, and `noblock-test-s1` (how far leakage would raise F1).<br>**Gap 3 / H3:** test coverage of `sysA` vs the val coverage saved in `experiments/final_config.json` (within 5 points), accuracy on answered items vs the forced-answer rule (`evaluate --forced`), risk-coverage curve, and B2 | One test per research gap, each checking its Phase 1 hypothesis (H1, H2, H3) on the test split |
+| E4 Gap-wise experiments (analysis of the E1, E3 and E5 runs; no extra runs) | **Gap 1 / H1:** round-1 three-family vote of `sysA-test-s1..s3` vs B3 (each verifier alone) and B4 (`b4-test-s1..s3`), plus `overlap` for every verifier pair: cross-family pairs vs the `llama@1..3` pairs.<br>**Gap 2 / H2:** System A vs B0 and System B vs B1 (F1 overall and per difficulty), share of searches where the source was found and blocked, and `noblock-test-s1` (how far leakage would raise F1).<br>**Gap 3 / H3:** test coverage of `sysA` vs the val coverage saved in `experiments/final_config.json` (within 5 points), accuracy on answered items vs the forced-answer rule (`evaluate --forced`), risk-coverage curve, and B2 | Tests the Phase 1 hypotheses H1, H2 and H3 (below), one per gap, on the test split |
 | E5 Ablations | `none-test-s1` (no evidence), `noblock-test-s1` (source not blocked), `debate-test-s1` (verifiers see each other); second round off = `evaluate --round 1` on `sysA` | What each part adds, and how much source leakage would inflate the score (gap 2) |
 | E6 Efficiency and reliability (analysis of every run) | The efficiency section of each run's `metrics.json`: model calls, prompt and completion tokens, model seconds and PubMed requests per item, share sent to round 2, re-asks, unreadable replies, abstention rate, max prompt tokens; mean and SD over seeds where there are 3 runs | What each configuration costs, and how reliably it runs |
 
 ```bash
-python -m experiments.run --stage smoke             # every run on 6 dev answers: a crash check
+python -m experiments.run --stage smoke             # one run per configuration on 6 dev answers: a crash check
 python -m experiments.run --stage val               # val-sysA-off, val-sysA-split, val-sysA-nomaj
 python -m experiments.choose                        # pre-registered rule -> experiments/final_config.json
 python -m experiments.run --stage test --only E2    # test runs, one experiment at a time (or all)
@@ -184,6 +184,12 @@ python -m experiments.run --stage test --dry-run    # each command and how many 
 python -m experiments.state save --to DIR          # back up the reply and PubMed caches (restore --from DIR)
 #   add --backup-dir DIR to any stage to back up after every run
 ```
+
+**Hypotheses** (from the Phase 1 proposal, also in [`experiments/facts.py`](experiments/facts.py)):
+
+- **H1 (gap 1):** The three-family vote has a higher F1 than B4 (self-consistency), because cross-family pairs share fewer mistakes than samples of one model.
+- **H2 (gap 2):** Setting A lands between the two baselines: its F1 is above B0 (no knowledge) but below B1 (source given).
+- **H3 (gap 3):** Test coverage stays within 5 points of validation coverage, and accuracy on answered items is higher than when the same system must answer everything.
 
 **Pre-registered rule** (fixed in [docs/devlog.md](docs/devlog.md) before any Phase 2 run): the second-round trigger is chosen on the validation split only, between `split` and `no-majority`: the highest accuracy on answered items among triggers with coverage >= 0.70, and `no-majority` (cheaper) if the two are within 0.005. "Second round off" is reported as an ablation, not chosen. The test stage refuses to start until `experiments/final_config.json` exists, and `choose` refuses to change it once any test run has results.
 
