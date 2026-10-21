@@ -6,6 +6,7 @@ same caching, re-ask and logging as the experiments.
 from __future__ import annotations
 
 import csv
+import io
 import json
 from pathlib import Path
 from typing import Callable, Iterable, Optional
@@ -54,15 +55,18 @@ def verify_one(question: str, answer: str, pmid=None, verifiers: Optional[dict] 
 
 # ------------------------------------------------------------- CSV batch
 
-def read_rows(path: Path) -> list[dict]:
-    """Rows of a CSV with question, answer and optionally pmid (other columns are kept)."""
-    with Path(path).open(encoding="utf-8-sig", newline="") as f:
-        rows = list(csv.DictReader(f))
+def parse_rows(text: str, name: str = "the CSV") -> list[dict]:
+    """Rows of CSV text with question, answer and optionally pmid (other columns are kept)."""
+    rows = list(csv.DictReader(io.StringIO(text.lstrip("﻿"))))
     missing = [c for c in ("question", "answer") if rows and c not in rows[0]]
     if missing or not rows:
-        raise ValueError(f"{path} needs the columns question and answer (and optionally pmid); "
+        raise ValueError(f"{name} needs the columns question and answer (and optionally pmid); "
                          + (f"missing: {', '.join(missing)}" if missing else "it has no rows"))
     return rows
+
+
+def read_rows(path: Path) -> list[dict]:
+    return parse_rows(Path(path).read_text(encoding="utf-8-sig"), str(path))
 
 
 def batch_row(row: dict, state: VerificationState, verifier_names: list[str]) -> dict:
