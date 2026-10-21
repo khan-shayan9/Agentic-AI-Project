@@ -27,7 +27,8 @@ src/medverify/
   pipeline.py     multi-agent system (evidence agent, verifiers, decision step)
   metrics.py      F1 per difficulty, coverage, selective accuracy, error overlap, cost
   cli.py          the `python -m medverify` commands
-notebooks/        Colab notebook that runs the baseline on a free GPU
+experiments/      Phase 2 run plan (plan.py), runner (run.py) and val-only trigger choice (choose.py)
+notebooks/        Colab notebooks: Phase 1 baseline, and Phase 2 experiments (also runs on Kaggle)
 tests/            offline tests (fake models, no internet needed)
 docs/             architecture and development log (docs/devlog.md)
 ```
@@ -160,6 +161,31 @@ These are early validation results. So far the three model families share many m
 - **The verifier prompt is `reason`** (a short check, then `Verdict: ...`), chosen on the validation split over `digits` and `words` (vote F1 0.680 vs 0.595 and 0.447).
 - **The vote rule stays at 2 of 3**, although `tune` preferred 1 of 3: 2 of 3 is a true majority, it abstains more often so gap 3 can be measured, and its accuracy on answered items is within 1-2 answers of 1 of 3 (0.646 vs 0.654).
 - **New in Phase 2:** a second evidence round with claim queries when the votes split (the agentic loop from the proposal), one re-ask when a reply has no readable verdict, a debate ablation, seeds for repeat runs, structured trajectories (`steps`) and PubMed tool-call logs (`tool_calls`), leakage and efficiency summaries, and a resume check for baseline folders. See [docs/devlog.md](docs/devlog.md).
+
+## Phase 2 experiments
+
+Every Phase 2 run is defined once in [`experiments/plan.py`](experiments/plan.py) and run in order by `experiments/run.py`; [`notebooks/phase2_colab.ipynb`](notebooks/phase2_colab.ipynb) runs it all on Colab or Kaggle. All runs use the pre-registered setup: vote 2 of 3, verifier temperature 0, the `reason` prompt, seeds 1-3 for the main configurations and seed 1 for the rest.
+
+| Experiment | Runs (test split) | What it shows |
+| --- | --- | --- |
+| E1 Other baselines | `b4-test-s1..s3` (B4: Llama 3.1 8B sampled 3 times at temperature 0.7, vote 2 of 3), `b5-test-s1` (B5: simple RAG, first PubMed query only); B3 = each verifier alone, read from `sysA-test-s1` round 1 | Whether three model families beat three samples of one model, plain retrieval, and each verifier alone |
+| E2 MedHallu baselines | `b0-`, `b1-`, `b2-test-s1..s3` (no knowledge, source abstract, "not sure" allowed) | The paper's settings reproduced, with the spread over three seeds |
+| E3 Proposed system | `sysA-test-s1..s3` (PubMed, source blocked, chosen second-round trigger), `sysB-test-s1` (source abstract given) | The main result, against B0-B5 |
+| E4 Independence (analysis) | `overlap` on the round-1 verdicts of `sysA-test-s1..s3`, with `b4` for comparison | Whether the three model families make the same mistakes (gap 1) |
+| E5 Ablations | `none-test-s1` (no evidence), `noblock-test-s1` (source not blocked), `debate-test-s1` (verifiers see each other); second round off = `evaluate --round 1` on `sysA` | What each part adds, and how much source leakage would inflate the score (gap 2) |
+| E6 Abstention and cost (analysis) | `evaluate --forced` on `sysA` (forced answer), risk-coverage, the leakage and efficiency sections, test vs val coverage | Whether abstaining raises accuracy on answered items (gap 3), and at what cost |
+
+```bash
+python -m experiments.run --stage smoke             # every run on 6 dev answers: a crash check
+python -m experiments.run --stage val               # val-sysA-off, val-sysA-split, val-sysA-nomaj
+python -m experiments.choose                        # pre-registered rule -> experiments/final_config.json
+python -m experiments.run --stage test --only E2    # test runs, one experiment at a time (or all)
+python -m experiments.run --stage test --dry-run    # each command and how many items are left
+```
+
+**Pre-registered rule** (fixed in [docs/devlog.md](docs/devlog.md) before any Phase 2 run): the second-round trigger is chosen on the validation split only, between `split` and `no-majority`: the highest accuracy on answered items among triggers with coverage >= 0.70, and `no-majority` (cheaper) if the two are within 0.005. "Second round off" is reported as an ablation, not chosen. The test stage refuses to start until `experiments/final_config.json` exists, and `choose` refuses to change it once any test run has results.
+
+**Where results go:** each run in `results/runs/<name>/` (`config.json`, `states.jsonl` or `predictions.jsonl`, `metrics.json`); the chosen trigger with its validation numbers in `experiments/final_config.json` (commit it); the Ollama model versions in `results/runs/ollama_versions.txt`. On Colab, `data/cache` and `results/runs` live in `MyDrive/medverify_phase2`; on Kaggle the last notebook cell saves them as `medverify_state.zip`.
 
 ## Tests
 
