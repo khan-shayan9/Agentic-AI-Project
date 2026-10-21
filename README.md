@@ -195,6 +195,12 @@ python -m experiments.state save --to DIR          # back up the reply and PubMe
 
 **Where results go:** each run in `results/runs/<name>/` (`config.json`, `states.jsonl` or `predictions.jsonl`, `metrics.json`); the chosen trigger with its validation numbers in `experiments/final_config.json` (commit it); the Ollama model versions in `results/runs/ollama_versions.txt`. On Colab, `results/runs` lives in `MyDrive/medverify_phase2`; the reply cache stays on local disk, because SQLite is not safe on network or cloud drives ([sqlite.org/useovernet.html](https://sqlite.org/useovernet.html)), and is backed up to `MyDrive/medverify_phase2/state` after every run (`--backup-dir`, `experiments/state.py`). On Kaggle the backup goes to `/kaggle/working/medverify_state`, and the last notebook cell zips it with `results/runs` as `medverify_state.zip`.
 
+## Results
+
+<!-- GAP_TABLE_START -->
+Pending: no Phase 2 test run has been exported yet. `python -m experiments.export`, then `python -m experiments.report`, fills this table.
+<!-- GAP_TABLE_END -->
+
 ## Tests
 
 ```bash

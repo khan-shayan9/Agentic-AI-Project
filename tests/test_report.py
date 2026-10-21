@@ -207,3 +207,41 @@ def test_main_overlap_leakage_and_significance(reported):
     assert {"Second round off", "Forced answer (no abstention)", "Vote 3 of 3", "Drop phi (2 of 2 must agree)"} <= set(ablation)
     assert float(ablation["Vote 2 of 3"]["delta_f1"]) == 0.0
     assert (reported / "results/phase2/tables/val/runs.csv").exists()
+
+
+# ------------------------------------------------------------- gap table
+
+from experiments import gaps  # noqa: E402
+
+
+def test_gap_table_has_the_brief_columns_and_follows_the_rule(reported):
+    rows = read_csv(reported / "results/phase2/tables/gap_resolution.csv")
+    assert list(rows[0]) == gaps.COLUMNS and [r["Gap"][0] for r in rows] == ["1", "2", "3"]
+    assert all(r["Addressed?"] in ("Fully", "Partially", "Not", "Pending") for r in rows)
+    md = (reported / "results/phase2/tables/gap_resolution.md").read_text(encoding="utf-8")
+    assert "Missing runs: debate-test-s1" in md and "The group reviewed the rule's output." in md
+    assert "(reported 0.522)" in rows[1]["Base paper result"] and "kept leaks in setting-A runs: 0" in rows[1]["Our result"]
+    # gap 2 in the fake workspace: no leaks, System A vs B0 and System B vs B1 decided by the rule from their numbers
+    sig = {r["comparison"]: r for r in read_csv(reported / "results/phase2/tables/significance.csv")}
+
+    def met(name):
+        r = sig[name]
+        return facts.comparison_met(float(r["mean_diff_f1"]) if r["mean_diff_f1"] else float(r["f1_diff"]), float(r["f1_ci_low"]))
+
+    assert rows[1]["Addressed?"] == facts.addressed([True, met("System A vs B0"), met("System B vs B1")])
+
+
+def test_gap_table_is_pending_without_runs_and_goes_into_the_readme(tmp_path, monkeypatch):
+    phase2 = tmp_path / "results/phase2"
+    phase2.mkdir(parents=True)
+    (phase2 / "items_test.csv").write_text("item_id,label,difficulty,category\nx-gt,0,easy,c\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    readme = tmp_path / "README.md"
+    readme.write_text(f"# Title\n\n{gaps.START}\nold\n{gaps.END}\n\nafter\n", encoding="utf-8")
+    rep = report.build("test", phase2, resamples=200)
+    rows = gaps.write_gap_table(rep, readme)
+    assert [r["Addressed?"] for r in rows] == ["Pending", "Pending", "Pending"]
+    text = readme.read_text(encoding="utf-8")
+    assert "old" not in text and text.endswith("after\n") and "| Gap | Method / component |" in text
+    assert "Missing runs: b0-test-s1" in text and "pending (runs missing)" in text
+    assert gaps.update_readme(tmp_path / "README.md", "again") and "again" in readme.read_text(encoding="utf-8")

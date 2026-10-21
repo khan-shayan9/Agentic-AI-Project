@@ -408,11 +408,16 @@ def ablation_table(rep: Report) -> list[dict]:
 
 # ------------------------------------------------------------- main
 
-def write_all(rep: Report) -> dict:
-    return {
+def write_all(rep: Report, readme: Optional[Path] = Path("README.md")) -> dict:
+    tables = {
         "runs": runs_table(rep), "main": main_table(rep), "overlap": overlap_table(rep), "leakage": leakage_table(rep),
         "ablation": ablation_table(rep), "significance": significance_table(rep),
     }
+    if rep.split == "test":  # the success criteria are about the test split
+        from .gaps import write_gap_table
+
+        tables["gap_resolution"] = write_gap_table(rep, readme)
+    return tables
 
 
 def main(argv=None) -> int:
