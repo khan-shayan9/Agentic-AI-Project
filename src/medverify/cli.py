@@ -47,7 +47,7 @@ def _items(split: str, limit: int | None):
 # default for it (and before --prompt existed, the prompt was "words").
 PHASE1_SETUP = {
     "prompt": "words", "temperature": 0.0, "seed": None, "evidence": "none",
-    "debate": False, "reask": False, "block": True, "retry": True,
+    "debate": False, "reask": False, "block": True, "retry": True, "second_round": "off", "k2": 2,
 }
 
 
@@ -63,6 +63,8 @@ def _pipeline_setup(args, models: dict[str, str]) -> dict:
         "reask": not args.no_reask,
         "block": not args.no_block,
         "retry": not args.no_retry,
+        "second_round": args.second_round,
+        "k2": args.k2,
     }
 
 
@@ -219,6 +221,11 @@ def cmd_pipeline(args):
     from .pipeline import VerifierCallError, final_verdicts, run_pipeline
     from .tools.pubmed import PubMedSearch
 
+    if args.debate and args.second_round != "off":
+        raise SystemExit(
+            "--debate and --second-round cannot be used together: both add a round 2 "
+            "(debate = see the others' verdicts; second round = new evidence, still independent). Run them separately."
+        )
     items = _items(args.split, args.limit)
     verifiers = _make_verifiers(args)
     pubmed = PubMedSearch() if args.evidence == "pubmed" else None
@@ -239,6 +246,7 @@ def cmd_pipeline(args):
             items, verifiers, args.evidence, pubmed, args.k, args.min_agree, states_path,
             prompt_style=args.prompt, reask=not args.no_reask, debate=args.debate,
             block=not args.no_block, retry=not args.no_retry,
+            second_round_rule=args.second_round, k2=args.k2,
         )
     except VerifierCallError as err:
         done = len(D.read_jsonl(states_path, VerificationState)) if states_path.exists() else 0
@@ -386,6 +394,10 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--k", type=int, default=3, help="evidence abstracts per item")
     s.add_argument("--no-block", action="store_true",
                    help="ablation: keep the source abstract and near copies (marked as leaks) instead of blocking them")
+    s.add_argument("--second-round", default="off", choices=["off", "split", "no-majority"],
+                   help="second evidence round (claim queries) when round 1 is split / has no majority; "
+                        "PubMed mode only; choose on val")
+    s.add_argument("--k2", type=int, default=2, help="new abstracts to add in the second round")
     s.add_argument("--no-retry", action="store_true",
                    help="use only the first PubMed query, no shorter retry (baseline B5, simple RAG)")
     s.add_argument("--min-agree", type=int, default=2)

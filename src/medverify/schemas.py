@@ -70,6 +70,7 @@ class Evidence(BaseModel):
     query: str
     rank: int
     leak: Optional[LeakReason] = None  # set only when blocking is off (ablation): this abstract leaks the source
+    round: int = 1  # 2 = found by the second evidence round (claim query)
 
 
 class BlockedEvidence(BaseModel):
@@ -78,6 +79,7 @@ class BlockedEvidence(BaseModel):
     pmid: str
     reason: LeakReason
     overlap: float = 0.0
+    round: int = 1
 
 
 class Verdict(BaseModel):
@@ -115,6 +117,7 @@ class ToolCall(BaseModel):
     n_results: int
     cached: bool
     latency_s: float
+    round: int = 1  # evidence round that made the call
 
 
 class VerificationState(BaseModel):

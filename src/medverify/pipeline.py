@@ -8,6 +8,12 @@ For each item:
   3. Decision step: vote with abstention. A label is accepted only when at least
      `min_agree` verifiers choose it; otherwise the system abstains (2).
 
+Second evidence round (`second_round="split"` or `"no-majority"`, PubMed mode only): when
+the round-1 votes are split (or give no majority), the evidence agent searches again with
+claim queries built from the answer, skipping abstracts already used. With new abstracts,
+every verifier judges again, still independently, with the old + new evidence; the decision
+then uses these round-2 verdicts. Without new abstracts, the round-1 decision stands.
+
 Debate ablation (`debate=True`): after round 1 each verifier sees the others' verdicts and
 reasoning (anonymised) and judges again; the decision then uses these round-2 verdicts.
 
@@ -30,9 +36,11 @@ from .metrics import aggregate_forced, aggregate_votes
 from .parsing import parse_for_style
 from .prompts import DEFAULT_PROMPT_STYLE, debate_message, format_evidence, reask_message, verifier_messages
 from .schemas import Evidence, Item, LLMResult, Verdict, VerificationState
-from .tools.pubmed import PubMedSearch, keyword_queries
+from .tools.pubmed import PubMedSearch, claim_queries, keyword_queries
 
 EvidenceMode = Literal["none", "pubmed", "source"]
+SecondRound = Literal["off", "split", "no-majority"]
+SECOND_ROUND_RULES = ("off", "split", "no-majority")
 
 
 class VerifierCallError(RuntimeError):
@@ -190,6 +198,108 @@ def debate_round(
         state.verdicts.append(judge(name, model, item, evidence_text, style, 2, state, reask, messages=messages))
 
 
+# ------------------------------------------------------- second evidence round
+
+def second_round_triggered(state: VerificationState, rule: SecondRound, min_agree: int) -> bool:
+    """Whether the round-1 votes call for a second evidence round.
+
+    "split":       the votes are not all the same 0/1 label (any disagreement, UNSURE or
+                   unreadable reply), i.e. a unanimous vote would abstain.
+    "no-majority": the round-1 decision (same min_agree rule) is 2, abstain.
+    """
+    codes = [v.verdict for v in state.first_round()]
+    if rule == "split":
+        return aggregate_votes(codes, min_agree=len(codes)) == 2
+    if rule == "no-majority":
+        return aggregate_votes(codes, min_agree) == 2
+    return False
+
+
+def gather_claim_evidence(
+    item: Item,
+    pubmed: PubMedSearch,
+    k2: int,
+    state: VerificationState,
+    block: bool = True,
+    retry: bool = True,
+) -> list[Evidence]:
+    """Round-2 evidence: PubMed search with claim queries from the answer, the same source
+    blocking, and no abstract the verifiers have already seen. Returns up to k2 new abstracts."""
+    queries = claim_queries(item.question, item.answer)
+    if not queries:
+        state.trace.append("evidence round 2: the answer adds no new keywords, no claim query")
+        state.add_step("evidence", "claim_search", round=2, queries=[], query=None, kept=[], blocked=[], leaked=[])
+        return []
+    used = [e.pmid for e in state.evidence]
+    calls_before = len(getattr(pubmed, "calls", []))
+    kept, blocked = pubmed.retrieve(
+        queries,
+        k=k2,
+        block_pmids=[item.pubid] if item.pubid else [],
+        block_texts=item.knowledge,
+        block=block,
+        retry=retry,
+        exclude_pmids=used,
+    )
+    new_calls = getattr(pubmed, "calls", [])[calls_before:]
+    for record in [*kept, *blocked, *new_calls]:
+        record.round = 2
+    state.tool_calls.extend(new_calls)
+    state.blocked.extend(blocked)
+    query = kept[0].query if kept else queries[0]
+    leaked = [{"pmid": e.pmid, "leak": e.leak} for e in kept if e.leak]
+    state.trace.append(
+        f"evidence round 2: pubmed claim query='{query}' kept={len(kept)} blocked={len(blocked)}"
+        + (f" leaked={len(leaked)}" if leaked else "")
+    )
+    state.add_step(
+        "evidence", "claim_search", round=2, queries=queries if retry else queries[:1], query=query,
+        kept=[e.pmid for e in kept], blocked=[{"pmid": b.pmid, "reason": b.reason} for b in blocked],
+        leaked=leaked, excluded=used,
+    )
+    return kept
+
+
+def second_round(
+    item: Item,
+    verifiers: dict[str, ChatModel],
+    evidence_mode: EvidenceMode,
+    pubmed: Optional[PubMedSearch],
+    rule: SecondRound,
+    k2: int,
+    min_agree: int,
+    style: str,
+    state: VerificationState,
+    reask: bool = True,
+    block: bool = True,
+    retry: bool = True,
+) -> None:
+    """The agentic loop: when round 1 is split, look for new evidence and let every verifier
+    judge again, still independently. Does not decide; the caller calls decide() once."""
+    triggered = second_round_triggered(state, rule, min_agree)
+    state.trace.append(f"second round ({rule}): {'triggered' if triggered else 'not needed'}")
+    state.add_step("orchestrator", "second_round_check", round=2, rule=rule, triggered=triggered,
+                   round1_votes=[v.verdict for v in state.first_round()])
+    if not triggered:
+        return
+    if evidence_mode != "pubmed" or pubmed is None:
+        state.trace.append(f"second round skipped (evidence mode '{evidence_mode}')")
+        state.add_step("orchestrator", "second_round_skipped", round=2, reason=f"evidence mode '{evidence_mode}'")
+        return
+    new = gather_claim_evidence(item, pubmed, k2, state, block, retry)
+    if not new:
+        state.flags.append("no_new_evidence")  # round-1 votes and decision stand, no extra model calls
+        state.trace.append("second round: no new evidence, round-1 votes stand")
+        state.add_step("orchestrator", "second_round_no_new_evidence", round=2)
+        return
+    state.evidence.extend(new)
+    evidence_text = format_evidence(state.evidence, max_chars=1000)
+    state.add_step("orchestrator", "second_round_judge", round=2, verifiers=list(verifiers),
+                   evidence=[e.pmid for e in state.evidence])
+    for name, model in verifiers.items():
+        state.verdicts.append(judge(name, model, item, evidence_text, style, 2, state, reask))
+
+
 def decide(state: VerificationState, min_agree: int) -> int:
     """Vote on the last round's verdicts; also save the decision from round 1 alone."""
     last = state.last_round()
@@ -219,11 +329,15 @@ def verify_item(
     debate: bool = False,
     block: bool = True,
     retry: bool = True,
+    second_round_rule: SecondRound = "off",
+    k2: int = 2,
 ) -> VerificationState:
+    if debate and second_round_rule != "off":
+        raise ValueError("debate and the second evidence round cannot be used together (both add a round 2)")
     state = VerificationState(item_id=item.item_id, evidence_mode=evidence_mode)
     state.add_step("orchestrator", "start", verifiers=list(verifiers), evidence_mode=evidence_mode,
                    prompt_style=prompt_style, min_agree=min_agree, reask=reask, debate=debate,
-                   block=block, retry=retry)
+                   block=block, retry=retry, second_round=second_round_rule, k2=k2)
     state.evidence = gather_evidence(item, evidence_mode, pubmed, k, state, block, retry)
     max_chars = None if evidence_mode == "source" else 1000
     evidence_text = format_evidence(state.evidence, max_chars=max_chars) if state.evidence else None
@@ -232,7 +346,10 @@ def verify_item(
         state.verdicts.append(judge(name, model, item, evidence_text, prompt_style, 1, state, reask))
     if debate:
         debate_round(item, verifiers, evidence_text, prompt_style, state, reask)
-    decide(state, min_agree)
+    if second_round_rule != "off":
+        second_round(item, verifiers, evidence_mode, pubmed, second_round_rule, k2, min_agree,
+                     prompt_style, state, reask, block, retry)
+    decide(state, min_agree)  # once per item, at the very end
     return state
 
 
@@ -249,6 +366,8 @@ def run_pipeline(
     debate: bool = False,
     block: bool = True,
     retry: bool = True,
+    second_round_rule: SecondRound = "off",
+    k2: int = 2,
 ) -> list[VerificationState]:
     done: dict[str, VerificationState] = {}
     if out_path and Path(out_path).exists():
@@ -262,6 +381,7 @@ def run_pipeline(
         state = verify_item(
             item, verifiers, evidence_mode, pubmed, k, min_agree,
             prompt_style=prompt_style, reask=reask, debate=debate, block=block, retry=retry,
+            second_round_rule=second_round_rule, k2=k2,
         )
         states.append(state)
         if out_path:
@@ -272,7 +392,8 @@ def run_pipeline(
 # ---------------------------------------------------- views over states
 
 def _round_verdicts(s: VerificationState, round_no: Optional[int]) -> list[Verdict]:
-    return s.last_round() if round_no is None else s.round_verdicts(round_no)
+    """Verdicts of one round; an item that never reached that round keeps its last round."""
+    return s.last_round() if round_no is None or round_no >= s.rounds else s.round_verdicts(round_no)
 
 
 def _decision(s: VerificationState, min_agree: Optional[int], round_no: Optional[int], forced: bool):
@@ -282,7 +403,7 @@ def _decision(s: VerificationState, min_agree: Optional[int], round_no: Optional
         return aggregate_forced(codes, codes[0] if codes else None)
     if min_agree is not None:
         return aggregate_votes([v.verdict for v in _round_verdicts(s, round_no)], min_agree)
-    if round_no is None or round_no == s.rounds:
+    if round_no is None or round_no >= s.rounds:
         return s.final
     if round_no == 1 and s.final_round1 is not None:
         return s.final_round1

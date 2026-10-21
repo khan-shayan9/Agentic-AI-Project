@@ -35,16 +35,21 @@ _STOPWORDS = set(
 )
 
 
+def _keywords(text: str) -> list[str]:
+    """Content words in order of appearance, without stopwords, short words or repeats."""
+    seen: list[str] = []
+    for w in _WORD.findall(text.lower()):
+        if w not in _STOPWORDS and len(w) > 2 and w not in seen:
+            seen.append(w)
+    return seen
+
+
 def keyword_queries(question: str) -> list[str]:
     """PubMed ANDs every word, so long questions often return nothing.
 
     Returns a list of progressively shorter keyword queries to try in order.
     """
-    words = [w for w in _WORD.findall(question.lower()) if w not in _STOPWORDS and len(w) > 2]
-    seen: list[str] = []
-    for w in words:
-        if w not in seen:
-            seen.append(w)
+    seen = _keywords(question)
     queries = []
     for size in (8, 5, 3):
         if seen[:size]:
@@ -52,6 +57,25 @@ def keyword_queries(question: str) -> list[str]:
             if q not in queries:
                 queries.append(q)
     return queries or [question]
+
+
+def claim_queries(question: str, answer: str) -> list[str]:
+    """Queries for the second evidence round, built from the ANSWER's own claim.
+
+    Keywords that appear in the answer but not in the question carry the claim to check;
+    the top question keywords keep the topic. Progressively shorter: about 4 claim words +
+    2 topic words, then 3 + 1, then 2 + 1. Empty when the answer adds no new words.
+    """
+    topic = _keywords(question)
+    claim = [w for w in _keywords(answer) if w not in topic]
+    queries: list[str] = []
+    for n_claim, n_topic in ((4, 2), (3, 1), (2, 1)):
+        if not claim:
+            break
+        query = " ".join(claim[:n_claim] + topic[:n_topic])
+        if query not in queries:
+            queries.append(query)
+    return queries
 
 
 def word_ngrams(text: str, n: int = 8) -> set[tuple[str, ...]]:
