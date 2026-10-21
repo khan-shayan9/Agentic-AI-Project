@@ -71,9 +71,38 @@ DEFAULT_VERIFIERS = ("llama", "mistral-local", "phi")
 # Model family of each alias, used for the independence analysis.
 MODEL_FAMILY = {"llama": "Meta Llama", "mistral": "Mistral", "mistral-local": "Mistral", "phi": "Microsoft Phi", "gptoss": "OpenAI gpt-oss"}
 
+# Providers whose OpenAI-compatible endpoint accepts a `seed`. For the others the seed
+# only goes into the cache key, so repeat runs are still stored separately.
+SEED_PROVIDERS = ("ollama", "groq")
+
+
+def split_spec(spec: str) -> tuple[str, Optional[int]]:
+    """'llama@2' -> ('llama', 2): the same model, sample 2 (for repeat runs). 'llama' -> ('llama', None)."""
+    name, sep, index = spec.rpartition("@")
+    if sep and name and index.isdigit():
+        return name, int(index)
+    return spec, None
+
+
+def model_seed(spec: str, seed: Optional[int]) -> Optional[int]:
+    """Seed for one model: `seed` for a plain name, (seed or 0) * 100 + k for 'name@k'."""
+    _, index = split_spec(spec)
+    if index is None:
+        return seed
+    return (seed or 0) * 100 + index
+
+
+def model_family(spec: str) -> Optional[str]:
+    """Model family of a verifier name, ignoring any '@k' sample index."""
+    return MODEL_FAMILY.get(split_spec(spec)[0])
+
 
 def resolve_model(spec: str) -> tuple[str, str]:
-    """'llama' -> ('ollama', 'llama3.1:8b');  'groq:openai/gpt-oss-20b' -> ('groq', 'openai/gpt-oss-20b')."""
+    """'llama' -> ('ollama', 'llama3.1:8b');  'groq:openai/gpt-oss-20b' -> ('groq', 'openai/gpt-oss-20b').
+
+    A sample index is ignored: 'llama@2' resolves like 'llama'.
+    """
+    spec = split_spec(spec)[0]
     if spec in MODEL_ALIASES:
         return MODEL_ALIASES[spec]
     if ":" in spec:
@@ -118,6 +147,7 @@ class OpenAICompatibleModel:
     temperature: float = 0.3  # MedHallu authors used 0.3 (top_p 0.95)
     top_p: float = 0.95
     max_tokens: int = 512
+    seed: Optional[int] = None  # None = no seed (all Phase 1 runs)
     extra_body: dict = field(default_factory=dict)
     cache_path: Path = DEFAULT_CACHE
     max_retries: int = 6
@@ -149,6 +179,8 @@ class OpenAICompatibleModel:
             max_tokens=self.max_tokens,
             extra_body=self.extra_body,
         )
+        if self.seed is not None:  # only when set, so every Phase 1 cache key stays the same
+            payload["seed"] = self.seed
         return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
     def _wait_for_token_budget(self, messages: list[dict]) -> None:
@@ -176,6 +208,7 @@ class OpenAICompatibleModel:
 
         delay = 5.0
         extra_body = dict(self.extra_body)
+        seed_arg = {"seed": self.seed} if self.seed is not None and self.provider in SEED_PROVIDERS else {}
         for attempt in range(self.max_retries):
             self._wait_for_token_budget(messages)
             wait = self._min_interval - (time.monotonic() - self._last_call)
@@ -191,6 +224,7 @@ class OpenAICompatibleModel:
                     top_p=self.top_p,
                     max_tokens=self.max_tokens,
                     extra_body=extra_body or None,
+                    **seed_arg,
                 )
             except BadRequestError as err:
                 # Some models reject reasoning_effort; drop it once and try again.

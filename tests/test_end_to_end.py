@@ -165,3 +165,21 @@ def test_prompt_styles_run_compare_and_do_not_mix(workspace, capsys):
     cli.main(["compare", str(tmp / "results/runs/pd"), str(tmp / "results/runs/pr")])
     out = capsys.readouterr().out
     assert "== pd  (prompt: digits" in out and "== pr  (prompt: reason" in out and "mistral-local" in out
+
+
+def test_repeat_samples_get_their_own_seeds_and_keep_their_names(workspace, monkeypatch):
+    tmp, models = workspace
+    seen = {}
+
+    def fake_make_model(name, **kw):
+        seen[name] = kw
+        return FakeModel(f"fake-{name}", answer_reader(4))
+
+    monkeypatch.setattr(llm, "make_model", fake_make_model)
+    cli.main(["prepare", "--test-per-level", "2", "--val-size", "6", "--dev-size", "3"])
+    cli.main(["pipeline", "--split", "dev", "--verifiers", "llama@1,llama@2,phi", "--seed", "3",
+              "--max-tokens", "256", "--name", "sc"])
+    assert {n: kw["seed"] for n, kw in seen.items()} == {"llama@1": 301, "llama@2": 302, "phi": 3}
+    assert all(kw["max_tokens"] == 256 for kw in seen.values())
+    states = D.read_jsonl(tmp / "results/runs/sc/states.jsonl")
+    assert [v["system"] for v in states[0]["verdicts"]] == ["verifier:llama@1", "verifier:llama@2", "verifier:phi"]

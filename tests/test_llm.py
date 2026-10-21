@@ -1,5 +1,6 @@
 """Checks the real HTTP client against a tiny local OpenAI-compatible server."""
 
+import hashlib
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -137,3 +138,44 @@ def test_pacing_follows_the_chosen_mistral_model(monkeypatch, tmp_path):
     assert m._tpm == 937_500 and abs(m._min_interval - 2.4) < 1e-9
     small = llm.make_model("mistral", cache_path=tmp_path / "c.sqlite")
     assert small._tpm == 20_000 and abs(small._min_interval - 1.2) < 1e-9
+
+
+def _phase1_key(model, messages):
+    """The cache key exactly as Phase 1 computed it (no seed field)."""
+    payload = dict(
+        provider=model.provider,
+        model=model.model,
+        messages=messages,
+        temperature=model.temperature,
+        top_p=model.top_p,
+        max_tokens=model.max_tokens,
+        extra_body=model.extra_body,
+    )
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+
+def test_seed_none_keeps_phase1_cache_key_and_seeds_differ(tmp_path):
+    msgs = [{"role": "user", "content": "hi"}]
+    plain = llm.make_model("llama", cache_path=tmp_path / "c.sqlite")
+    one = llm.make_model("llama", seed=1, cache_path=tmp_path / "c.sqlite")
+    two = llm.make_model("llama", seed=2, cache_path=tmp_path / "c.sqlite")
+    assert plain.seed is None and plain._key(msgs) == _phase1_key(plain, msgs)
+    assert len({plain._key(msgs), one._key(msgs), two._key(msgs)}) == 3
+
+
+def test_seed_is_sent_to_ollama_only_when_set(server, tmp_path):
+    msgs = [{"role": "user", "content": "hi"}]
+    llm.make_model("llama", cache_path=tmp_path / "a.sqlite").chat(msgs)
+    llm.make_model("llama", seed=7, cache_path=tmp_path / "b.sqlite").chat(msgs)
+    assert "seed" not in Handler.requests_seen[0]
+    assert Handler.requests_seen[1]["seed"] == 7
+
+
+def test_sample_index_in_verifier_names():
+    assert llm.split_spec("llama@2") == ("llama", 2)
+    assert llm.split_spec("llama") == ("llama", None)
+    assert llm.split_spec("groq:openai/gpt-oss-20b") == ("groq:openai/gpt-oss-20b", None)
+    assert llm.resolve_model("phi@3") == ("ollama", "phi4-mini")
+    assert llm.model_family("mistral-local@1") == "Mistral" and llm.model_family("llama") == "Meta Llama"
+    assert llm.model_seed("llama", 5) == 5 and llm.model_seed("llama", None) is None
+    assert llm.model_seed("llama@2", 5) == 502 and llm.model_seed("llama@2", None) == 2

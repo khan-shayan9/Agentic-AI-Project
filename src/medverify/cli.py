@@ -65,10 +65,10 @@ def cmd_prepare(args):
 
 def cmd_baseline(args):
     from .baseline import run_baseline
-    from .llm import make_model
+    from .llm import make_model, model_seed
 
     items = _items(args.split, args.limit)
-    model = make_model(args.model)
+    model = make_model(args.model, seed=model_seed(args.model, args.seed))
     out = _run_dir(args.name, f"baseline-{args.model}-{args.knowledge}-{args.split}")
     config = vars(args) | {"provider": model.provider, "model_id": model.model, "items": len(items)}
     (out / "config.json").write_text(json.dumps(config, indent=2, default=str))
@@ -76,14 +76,23 @@ def cmd_baseline(args):
     _score(out, items, verdicts)
 
 
+def _make_verifiers(args) -> dict:
+    """One model per verifier name; 'llama@2' is Llama again with its own seed (sample 2)."""
+    from .llm import make_model, model_seed
+
+    names = [n.strip() for n in args.verifiers.split(",") if n.strip()]
+    kwargs = {"temperature": args.temperature}
+    if args.max_tokens is not None:
+        kwargs["max_tokens"] = args.max_tokens
+    return {n: make_model(n, seed=model_seed(n, args.seed), **kwargs) for n in names}
+
+
 def cmd_pipeline(args):
-    from .llm import make_model
     from .pipeline import VerifierCallError, final_verdicts, run_pipeline
     from .tools.pubmed import PubMedSearch
 
     items = _items(args.split, args.limit)
-    names = [n.strip() for n in args.verifiers.split(",") if n.strip()]
-    verifiers = {n: make_model(n, temperature=args.temperature) for n in names}
+    verifiers = _make_verifiers(args)
     pubmed = PubMedSearch() if args.evidence == "pubmed" else None
     out = _run_dir(args.name, f"pipeline-{args.evidence}-{args.split}")
     models = {n: m.model for n, m in verifiers.items()}
@@ -231,12 +240,14 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--split", default="dev", choices=["dev", "val", "test"])
     s.add_argument("--knowledge", default="none", choices=["none", "source"])
     s.add_argument("--unsure", action="store_true", help="allow the '2 = not sure' answer")
+    s.add_argument("--seed", type=int, help="model seed for repeat runs (default: none, as in Phase 1)")
     s.add_argument("--limit", type=int)
     s.add_argument("--name")
     s.set_defaults(func=cmd_baseline)
 
     s = sub.add_parser("pipeline", help="multi-agent verification")
-    s.add_argument("--verifiers", default=",".join(DEFAULT_VERIFIERS), help="comma-separated: llama, mistral, phi, mistral-local, gptoss")
+    s.add_argument("--verifiers", default=",".join(DEFAULT_VERIFIERS),
+                   help="comma-separated: llama, mistral, phi, mistral-local, gptoss; 'llama@2' = Llama, sample 2")
     s.add_argument("--evidence", default="none", choices=["none", "pubmed", "source"])
     s.add_argument("--split", default="dev", choices=["dev", "val", "test"])
     s.add_argument("--k", type=int, default=3, help="evidence abstracts per item")
@@ -244,6 +255,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--prompt", default=DEFAULT_PROMPT_STYLE, choices=list(PROMPT_STYLES),
                    help="verifier prompt style; choose it on the val split")
     s.add_argument("--temperature", type=float, default=0.0)
+    s.add_argument("--seed", type=int, help="model seed; 'name@k' verifiers get (seed or 0) * 100 + k")
+    s.add_argument("--max-tokens", type=int, help="reply length cap (default 512; 1024 for gpt-oss)")
     s.add_argument("--limit", type=int)
     s.add_argument("--name")
     s.set_defaults(func=cmd_pipeline)
