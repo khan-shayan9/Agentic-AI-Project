@@ -8,6 +8,7 @@
   compare   one table across pipeline runs (e.g. prompt styles on val)
   tune      pick the vote rule on the validation split
   verify    check one question and answer typed by you (accept / reject / not sure, with the evidence)
+  batch     check every row of a CSV file (question, answer, optional pmid)
 """
 
 from __future__ import annotations
@@ -413,6 +414,29 @@ def cmd_verify(args):
     print(state.model_dump_json(indent=2) if args.json else format_report(state, second_round_note=f"{rule}; {why}"))
 
 
+def cmd_batch(args):
+    from . import service
+    from .pipeline import VerifierCallError
+
+    try:
+        rows = service.read_rows(Path(args.input))
+    except (OSError, ValueError) as err:
+        raise SystemExit(str(err))
+    verifiers, rule, why = _verify_setup(args)
+    states_path = service.states_path_for(Path(args.output))
+    print(f"{len(rows)} rows; second round: {rule} ({why}); full states in {states_path}")
+    try:
+        out = service.run_batch(rows, verifiers, args.evidence, rule, args.min_agree, states_path,
+                                progress=lambda n, total: print(f"\r{n}/{total} done", end="", flush=True))
+    except VerifierCallError as err:
+        raise _model_error(err)
+    except ValueError as err:
+        raise SystemExit(str(err))
+    service.write_rows(out, Path(args.output))
+    counts = {label: sum(r["decision"] == label for r in out) for label in ("ACCEPT", "REJECT", "NOT SURE")}
+    print(f"\nSaved {args.output}: " + ", ".join(f"{n} {label}" for label, n in counts.items()))
+
+
 def _add_use_options(s) -> None:
     s.add_argument("--evidence", default="pubmed", choices=["pubmed", "none", "source"],
                    help="pubmed (source blocked), none, or source (the --pmid abstract as the evidence)")
@@ -504,6 +528,12 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--json", action="store_true", help="print the full VerificationState as JSON")
     s.add_argument("--save", help="also save the state as JSON to this path")
     s.set_defaults(func=cmd_verify)
+
+    s = sub.add_parser("batch", help="check every row of a CSV (question, answer, optional pmid)")
+    s.add_argument("--input", required=True, help="CSV with the columns question, answer and optionally pmid")
+    s.add_argument("--output", required=True, help="results CSV; full states go to OUTPUT.states.jsonl")
+    _add_use_options(s)
+    s.set_defaults(func=cmd_batch)
     return p
 
 

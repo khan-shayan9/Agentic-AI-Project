@@ -5,11 +5,14 @@ same caching, re-ask and logging as the experiments.
 
 from __future__ import annotations
 
+import csv
 import json
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Callable, Iterable, Optional
 
 from . import llm as _llm
+from .data import append_jsonl, read_jsonl
+from .explain import agreement, decision_label, second_round_text
 from .llm import DEFAULT_VERIFIERS
 from .pipeline import verify_user_item
 from .schemas import VerificationState, user_item
@@ -49,3 +52,73 @@ def verify_one(question: str, answer: str, pmid=None, verifiers: Optional[dict] 
         pubmed = pubmed_tool(evidence_mode, item.pubid is not None)
     return verify_user_item(item, verifiers, evidence_mode, pubmed, min_agree=min_agree, second_round_rule=second_round)
 
+# ------------------------------------------------------------- CSV batch
+
+def read_rows(path: Path) -> list[dict]:
+    """Rows of a CSV with question, answer and optionally pmid (other columns are kept)."""
+    with Path(path).open(encoding="utf-8-sig", newline="") as f:
+        rows = list(csv.DictReader(f))
+    missing = [c for c in ("question", "answer") if rows and c not in rows[0]]
+    if missing or not rows:
+        raise ValueError(f"{path} needs the columns question and answer (and optionally pmid); "
+                         + (f"missing: {', '.join(missing)}" if missing else "it has no rows"))
+    return rows
+
+
+def batch_row(row: dict, state: VerificationState, verifier_names: list[str]) -> dict:
+    """One output row: the input columns plus the decision and what led to it."""
+    votes = {v.system.split(":", 1)[-1]: v.verdict for v in state.last_round()}
+    out = dict(row)
+    out |= {
+        "decision": decision_label(state.final),
+        "agreement": agreement(state),
+        **{f"vote_{n}": {0: "factual", 1: "hallucinated", 2: "unsure"}.get(votes.get(n), "unreadable") for n in verifier_names},
+        "evidence_pmids": " ".join(e.pmid for e in state.evidence),
+        "blocked_pmids": " ".join(b.pmid for b in state.blocked),
+        "second_round": second_round_text(state),
+        "flags": " ".join(state.flags),
+        "seconds": round(sum(v.latency_s for v in state.verdicts), 1),
+        "item_id": state.item_id,
+    }
+    return out
+
+
+def states_path_for(output: Path) -> Path:
+    """OUT.csv -> OUT.states.jsonl"""
+    output = Path(output)
+    return output.with_name(output.stem + ".states.jsonl")
+
+
+def run_batch(rows: list[dict], verifiers: dict, evidence_mode: str = "pubmed", second_round: str = "off",
+              min_agree: int = 2, states_path: Optional[Path] = None, pubmed=None,
+              progress: Optional[Callable[[int, int], None]] = None) -> list[dict]:
+    """Verify every row; full states are appended to `states_path`, and rows already there are skipped."""
+    if evidence_mode == "source":
+        lacking = [i + 2 for i, r in enumerate(rows) if not (r.get("pmid") or "").strip()]
+        if lacking:
+            raise ValueError(f"Evidence mode 'source' needs a pmid on every row; missing on CSV line(s) {lacking}.")
+    done: dict[str, VerificationState] = {}
+    if states_path and Path(states_path).exists():
+        done = {s.item_id: s for s in read_jsonl(states_path, VerificationState)}
+    if pubmed is None and (evidence_mode == "pubmed" or any((r.get("pmid") or "").strip() for r in rows)):
+        pubmed = _pubmed.PubMedSearch()
+    out = []
+    for n, row in enumerate(rows, 1):
+        item = user_item(row["question"], row["answer"], row.get("pmid"))
+        if item.item_id not in done:
+            state = verify_user_item(item, verifiers, evidence_mode, pubmed, min_agree=min_agree, second_round_rule=second_round)
+            done[item.item_id] = state
+            if states_path:
+                append_jsonl(states_path, state)
+        out.append(batch_row(row, done[item.item_id], list(verifiers)))
+        if progress:
+            progress(n, len(rows))
+    return out
+
+
+def write_rows(rows: list[dict], path: Path) -> None:
+    columns = list(dict.fromkeys(c for r in rows for c in r))
+    with Path(path).open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=columns)
+        writer.writeheader()
+        writer.writerows(rows)

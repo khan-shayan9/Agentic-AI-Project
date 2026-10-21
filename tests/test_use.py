@@ -123,3 +123,55 @@ def test_verify_not_sure_explains_why(offline, capsys, monkeypatch):
     assert "Decision: NOT SURE (sent for human review)" in out and "Why not sure: Most verifiers were unsure" in out
     with pytest.raises(SystemExit, match="--evidence source needs --pmid"):
         run_verify(capsys, "--evidence", "source")
+
+
+# ------------------------------------------------------------- batch
+
+import csv  # noqa: E402
+import shutil  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+SAMPLE = Path(__file__).parents[1] / "examples" / "sample_items.csv"
+
+
+def read_out(path):
+    with open(path, encoding="utf-8", newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def test_batch_writes_the_expected_columns_and_resumes(offline, capsys):
+    tmp, calls = offline
+    shutil.copy(SAMPLE, tmp / "items.csv")
+    cli.main(["batch", "--input", "items.csv", "--output", "out.csv", "--second-round", "off"])
+    rows = read_out(tmp / "out.csv")
+    assert len(rows) == 5
+    assert list(rows[0])[:3] == ["question", "answer", "pmid"]
+    assert {"decision", "agreement", "vote_llama", "vote_mistral-local", "vote_phi", "evidence_pmids", "blocked_pmids",
+            "second_round", "flags", "seconds"} <= set(rows[0])
+    assert {r["decision"] for r in rows} == {"REJECT"} and rows[0]["evidence_pmids"] == "5555 5556 2001"
+    assert len((tmp / "out.states.jsonl").read_text(encoding="utf-8").splitlines()) == 5
+    assert "Saved out.csv: 0 ACCEPT, 5 REJECT, 0 NOT SURE" in capsys.readouterr().out
+    before = len(calls["llama"].calls)
+    cli.main(["batch", "--input", "items.csv", "--output", "out.csv", "--second-round", "off"])
+    assert len(calls["llama"].calls) == before  # every row was already done: no model calls
+    assert read_out(tmp / "out.csv") == rows
+
+
+def test_batch_without_a_pmid_column_and_with_a_source_pmid(offline):
+    tmp, calls = offline
+    with open(tmp / "plain.csv", "w", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["question", "answer", "note"])
+        writer.writerow([QUESTION, ANSWER, "kept as is"])
+    cli.main(["batch", "--input", "plain.csv", "--output", "plain_out.csv", "--second-round", "off"])
+    row = read_out(tmp / "plain_out.csv")[0]
+    assert row["note"] == "kept as is" and row["decision"] == "REJECT" and row["blocked_pmids"] == ""
+    with open(tmp / "with_pmid.csv", "w", encoding="utf-8", newline="") as f:
+        csv.writer(f).writerows([["question", "answer", "pmid"], [QUESTION, ANSWER, "5555"]])
+    cli.main(["batch", "--input", "with_pmid.csv", "--output", "pmid_out.csv", "--second-round", "off"])
+    assert read_out(tmp / "pmid_out.csv")[0]["blocked_pmids"] == "5555 5556"
+    with pytest.raises(SystemExit, match="needs a pmid on every row"):
+        cli.main(["batch", "--input", "plain.csv", "--output", "x.csv", "--evidence", "source"])
+    (tmp / "bad.csv").write_text("text\nhello\n", encoding="utf-8")
+    with pytest.raises(SystemExit, match="needs the columns question and answer"):
+        cli.main(["batch", "--input", "bad.csv", "--output", "y.csv"])
