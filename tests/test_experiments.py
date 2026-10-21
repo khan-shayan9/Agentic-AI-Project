@@ -118,3 +118,69 @@ def test_runner_stops_at_the_first_failure(workspace, capsys, monkeypatch):
     assert runner.run_jobs([pipe, base]) == 1
     out = capsys.readouterr().out
     assert "Run t-pipe failed" in out and "t-base" not in out
+
+
+# ------------------------------------------------------------- choose
+
+from experiments import choose  # noqa: E402
+
+
+def overall(coverage, accuracy, f1=0.6):
+    return {"coverage": coverage, "selective_accuracy": accuracy, "f1": f1}
+
+
+def test_choose_rule():
+    pick = choose.choose_trigger
+    assert pick({"split": overall(0.92, 0.70), "no-majority": overall(0.88, 0.66)}) == "split"
+    assert pick({"split": overall(0.92, 0.64), "no-majority": overall(0.88, 0.66)}) == "no-majority"
+    assert pick({"split": overall(0.92, 0.664), "no-majority": overall(0.88, 0.660)}) == "no-majority"  # within 0.005
+    assert pick({"split": overall(0.92, 0.666), "no-majority": overall(0.88, 0.660)}) == "split"  # 0.006 apart
+    assert pick({"split": overall(0.69, 0.80), "no-majority": overall(0.75, 0.60)}) == "no-majority"  # coverage < 0.70
+    assert pick({"split": overall(0.70, 0.62), "no-majority": overall(0.65, 0.90)}) == "split"  # 0.70 counts
+    with pytest.raises(SystemExit, match="No trigger reaches coverage"):
+        pick({"split": overall(0.60, 0.80), "no-majority": overall(0.50, 0.90)})
+
+
+def save_val_run(runs_dir, name, coverage, accuracy, split="val", limit=None):
+    folder = runs_dir / name
+    folder.mkdir(parents=True)
+    (folder / "config.json").write_text(json.dumps({"split": split, "limit": limit}))
+    (folder / "metrics.json").write_text(json.dumps({
+        "overall": overall(coverage, accuracy),
+        "efficiency": {"round2_share": 0.3, "model_seconds_per_item": 15.0},
+    }))
+
+
+def test_choose_writes_final_config_and_refuses_once_test_results_exist(workspace, capsys):
+    tmp, _ = workspace
+    runs = tmp / "results/runs"
+    save_val_run(runs, "val-sysA-off", 0.89, 0.646)
+    save_val_run(runs, "val-sysA-split", 0.93, 0.662)
+    save_val_run(runs, "val-sysA-nomaj", 0.90, 0.659)
+    assert choose.main([]) == 0
+    config = json.loads((tmp / "final_config.json").read_text())
+    assert config["trigger"] == "no-majority" and config["chosen_run"] == "val-sysA-nomaj"  # 0.003 apart
+    assert config["val"] == {"coverage": 0.90, "selective_accuracy": 0.659, "f1": 0.6}
+    assert [r["run"] for r in config["candidates"]] == ["val-sysA-off", "val-sysA-split", "val-sysA-nomaj"]
+    assert "0.005" in config["rule"] and config["date"] and "git_commit" in config
+    assert "Chosen trigger: no-majority" in capsys.readouterr().out
+    assert runner.final_trigger() == "no-majority"
+
+    (runs / "b0-test-s1").mkdir()
+    (runs / "b0-test-s1/predictions.jsonl").write_text('{"item_id": "x"}\n')
+    before = (tmp / "final_config.json").read_text()
+    with pytest.raises(SystemExit, match="b0-test-s1"):
+        choose.main([])
+    assert (tmp / "final_config.json").read_text() == before
+
+
+def test_choose_needs_full_validation_runs(workspace):
+    tmp, _ = workspace
+    runs = tmp / "results/runs"
+    with pytest.raises(SystemExit, match="--stage val"):
+        choose.main([])
+    save_val_run(runs, "val-sysA-off", 0.89, 0.646)
+    save_val_run(runs, "val-sysA-split", 0.93, 0.662, split="dev", limit=6)
+    save_val_run(runs, "val-sysA-nomaj", 0.90, 0.659)
+    with pytest.raises(SystemExit, match="not a full validation run"):
+        choose.main([])
