@@ -21,7 +21,7 @@ from typing import Iterable, Optional
 
 import requests
 
-from ..schemas import BlockedEvidence, Evidence
+from ..schemas import BlockedEvidence, Evidence, ToolCall
 
 EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 _WORD = re.compile(r"[a-z0-9]+")
@@ -82,6 +82,8 @@ class PubMedSearch:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.session = session or requests.Session()
         self._last = 0.0
+        self.last_cached = False  # whether the last request came from the disk cache
+        self.calls: list[ToolCall] = []  # every search and fetch, for the agent trajectory
 
     # -------------------------------------------------------------- HTTP
 
@@ -93,7 +95,8 @@ class PubMedSearch:
             params["api_key"] = self.api_key
         key = hashlib.sha256(json.dumps([endpoint, params], sort_keys=True).encode()).hexdigest()
         cached = self.cache_dir / f"{key}.txt"
-        if cached.exists():
+        self.last_cached = cached.exists()
+        if self.last_cached:
             return cached.read_text(encoding="utf-8")
 
         for attempt in range(5):
@@ -111,20 +114,30 @@ class PubMedSearch:
         resp.raise_for_status()
         return resp.text
 
+    def _log(self, tool: str, query: str, n_results: int, started: float) -> None:
+        self.calls.append(
+            ToolCall(tool=tool, input=query, n_results=n_results, cached=self.last_cached,
+                     latency_s=round(time.monotonic() - started, 3))
+        )
+
     # ------------------------------------------------------------ search
 
     def search(self, query: str, retmax: int = 10) -> list[str]:
         """Return PMIDs that match the query, most relevant first."""
+        started = time.monotonic()
         text = self._get(
             "esearch.fcgi",
             {"db": "pubmed", "term": query, "retmax": retmax, "retmode": "json", "sort": "relevance"},
         )
-        return json.loads(text)["esearchresult"].get("idlist", [])
+        pmids = json.loads(text)["esearchresult"].get("idlist", [])
+        self._log("pubmed.esearch", query, len(pmids), started)
+        return pmids
 
     def fetch(self, pmids: list[str]) -> dict[str, tuple[str, str]]:
         """Return {pmid: (title, abstract)} for the given PMIDs."""
         if not pmids:
             return {}
+        started = time.monotonic()
         xml = self._get("efetch.fcgi", {"db": "pubmed", "id": ",".join(pmids), "retmode": "xml"})
         out: dict[str, tuple[str, str]] = {}
         root = ET.fromstring(xml)
@@ -137,6 +150,7 @@ class PubMedSearch:
                 body = "".join(node.itertext()).strip()
                 parts.append(f"{label}: {body}" if label else body)
             out[pmid] = (title.strip(), " ".join(parts).strip())
+        self._log("pubmed.efetch", ",".join(pmids), len(out), started)
         return out
 
     # ---------------------------------------------------------- retrieve

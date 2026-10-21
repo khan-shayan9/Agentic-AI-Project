@@ -6,9 +6,10 @@ these models serialised as one JSON line, so runs are easy to inspect and reload
 
 from __future__ import annotations
 
+import time
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 Difficulty = Literal["easy", "medium", "hard"]
 
@@ -88,10 +89,35 @@ class Verdict(BaseModel):
     prompt_tokens: int = 0
     completion_tokens: int = 0
     cached: bool = False
+    round: int = 1  # 1 = independent judgement; 2 = after seeing the others (debate)
+    reasked: bool = False  # the first reply was unreadable, so the model was asked once more
+
+
+class TraceStep(BaseModel):
+    """One step of the agent trajectory: who acted, what they did, and what came out."""
+
+    step: int
+    agent: Literal["evidence", "verifier", "decision", "orchestrator"]
+    action: str
+    detail: dict = Field(default_factory=dict)
+    t: float = 0.0  # seconds since the item started
+
+
+class ToolCall(BaseModel):
+    """One call to an external tool (for now PubMed search and fetch)."""
+
+    tool: str
+    input: str
+    n_results: int
+    cached: bool
+    latency_s: float
 
 
 class VerificationState(BaseModel):
-    """Full state of the multi-agent pipeline for one item (the agent trajectory)."""
+    """Full state of the multi-agent pipeline for one item (the agent trajectory).
+
+    Every field added after Phase 1 has a default, so Phase 1 states still load.
+    """
 
     item_id: str
     evidence_mode: str
@@ -100,4 +126,29 @@ class VerificationState(BaseModel):
     blocked: list[BlockedEvidence] = Field(default_factory=list)
     verdicts: list[Verdict] = Field(default_factory=list)
     final: VerdictCode = None
-    trace: list[str] = Field(default_factory=list)
+    trace: list[str] = Field(default_factory=list)  # short text log, kept for older tools
+    steps: list[TraceStep] = Field(default_factory=list)
+    tool_calls: list[ToolCall] = Field(default_factory=list)
+    rounds: int = 1
+    final_round1: VerdictCode = None  # the decision from round-1 votes alone
+    flags: list[str] = Field(default_factory=list)  # e.g. "human_review", "reasked:phi"
+    _started: float = PrivateAttr(default_factory=time.monotonic)
+
+    def add_step(self, agent: str, action: str, **detail) -> TraceStep:
+        """Append one step to the trajectory, timed from when this state was created."""
+        step = TraceStep(step=len(self.steps) + 1, agent=agent, action=action, detail=detail,
+                         t=round(time.monotonic() - self._started, 3))
+        self.steps.append(step)
+        return step
+
+    def round_verdicts(self, round_no: int) -> list[Verdict]:
+        """Verdicts given in one round, in verifier order."""
+        return [v for v in self.verdicts if v.round == round_no]
+
+    def first_round(self) -> list[Verdict]:
+        """Round-1 verdicts: each verifier's independent judgement."""
+        return self.round_verdicts(1)
+
+    def last_round(self) -> list[Verdict]:
+        """Verdicts of the last round, the ones the decision uses."""
+        return self.round_verdicts(max((v.round for v in self.verdicts), default=1))

@@ -1,4 +1,4 @@
-"""Proposed system, first working version.
+"""Proposed system.
 
 For each item:
   1. Evidence agent (optional): searches PubMed for the question, with the source
@@ -8,12 +8,14 @@ For each item:
   3. Decision step: vote with abstention. A label is accepted only when at least
      `min_agree` verifiers choose it; otherwise the system abstains (2).
 
-Every step is logged in a VerificationState (the agent trajectory), so the vote rule
-can be re-tuned later on the validation split without new model calls.
+Every step is logged in a VerificationState (the agent trajectory: structured steps,
+tool calls and verdicts), so vote rules can be re-applied later without new model calls.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 from typing import Literal, Optional
 
@@ -24,7 +26,7 @@ from .llm import ChatModel
 from .metrics import aggregate_votes
 from .parsing import parse_for_style
 from .prompts import DEFAULT_PROMPT_STYLE, format_evidence, verifier_messages
-from .schemas import Evidence, Item, Verdict, VerificationState
+from .schemas import Evidence, Item, LLMResult, Verdict, VerificationState
 from .tools.pubmed import PubMedSearch, keyword_queries
 
 EvidenceMode = Literal["none", "pubmed", "source"]
@@ -41,24 +43,109 @@ class VerifierCallError(RuntimeError):
 def gather_evidence(item: Item, mode: EvidenceMode, pubmed: Optional[PubMedSearch], k: int, state: VerificationState) -> list[Evidence]:
     if mode == "none":
         state.trace.append("evidence: none")
+        state.add_step("evidence", "none")
         return []
     if mode == "source":
         state.trace.append("evidence: source abstract given (setting B)")
+        state.add_step("evidence", "source", pmid=str(item.pubid or "source"))
         text = " ".join(item.knowledge)
         return [Evidence(pmid=str(item.pubid or "source"), title="Source abstract", text=text, query="", rank=1)]
     if pubmed is None:
         raise ValueError("evidence mode 'pubmed' needs a PubMedSearch tool")
     queries = keyword_queries(item.question)
+    calls_before = len(getattr(pubmed, "calls", []))
     kept, blocked = pubmed.retrieve(
         queries,
         k=k,
         block_pmids=[item.pubid] if item.pubid else [],
         block_texts=item.knowledge,
     )
+    state.tool_calls.extend(getattr(pubmed, "calls", [])[calls_before:])
     state.query = kept[0].query if kept else queries[0]
     state.blocked = blocked
     state.trace.append(f"evidence: pubmed query='{state.query}' kept={len(kept)} blocked={len(blocked)}")
+    state.add_step(
+        "evidence", "pubmed_search", queries=queries, query=state.query,
+        kept=[e.pmid for e in kept], blocked=[{"pmid": b.pmid, "reason": b.reason} for b in blocked],
+    )
     return kept
+
+
+# ------------------------------------------------------------ verifier steps
+
+def _ask(name: str, model: ChatModel, messages: list[dict]) -> LLMResult:
+    """One model call; a failure is re-raised with the verifier's name."""
+    try:
+        return model.chat(messages)
+    except Exception as err:
+        raise VerifierCallError(name, model, err) from err
+
+
+def _log_reply(state: VerificationState, name: str, round_no: int, action: str,
+               messages: list[dict], res: LLMResult, code) -> None:
+    """Trace step for one model reply: what went in, the raw reply, the parsed verdict, cost."""
+    sent = json.dumps(messages, sort_keys=True)
+    detail = dict(
+        verifier=name, round=round_no,
+        input_messages=len(messages), input_chars=sum(len(m["content"]) for m in messages),
+        input_sha256=hashlib.sha256(sent.encode()).hexdigest(),
+        raw_reply=res.text, verdict=code, latency_s=res.latency_s,
+        prompt_tokens=res.prompt_tokens, completion_tokens=res.completion_tokens, cached=res.cached,
+    )
+    if len(messages) > 2:  # a follow-up turn: keep the new message, it is not stored anywhere else
+        detail["last_input"] = messages[-1]["content"]
+    state.add_step("verifier", action, **detail)
+
+
+def judge(
+    name: str,
+    model: ChatModel,
+    item: Item,
+    evidence_text: Optional[str],
+    style: str,
+    round_no: int,
+    state: VerificationState,
+    messages: Optional[list[dict]] = None,
+) -> Verdict:
+    """One verifier's judgement of one item in one round.
+
+    `messages` replaces the standard verifier prompt (a later round passes its own).
+    """
+    messages = messages or verifier_messages(item.question, item.answer, evidence_text, style=style)
+    res = _ask(name, model, messages)
+    code = parse_for_style(res.text, style)
+    _log_reply(state, name, round_no, "judge", messages, res, code)
+    state.trace.append(f"verifier {name}: {code}" if round_no == 1 else f"verifier {name} (round {round_no}): {code}")
+    return Verdict(
+        item_id=item.item_id,
+        system=f"verifier:{name}",
+        verdict=code,
+        raw_text=res.text,
+        provider=res.provider,
+        model=res.model,
+        latency_s=res.latency_s,
+        prompt_tokens=res.prompt_tokens,
+        completion_tokens=res.completion_tokens,
+        cached=res.cached,
+        round=round_no,
+    )
+
+
+def decide(state: VerificationState, min_agree: int) -> int:
+    """Vote on the last round's verdicts; also save the decision from round 1 alone."""
+    last = state.last_round()
+    state.rounds = max((v.round for v in state.verdicts), default=1)
+    state.final_round1 = aggregate_votes([v.verdict for v in state.first_round()], min_agree)
+    state.final = aggregate_votes([v.verdict for v in last], min_agree)
+    if state.final == 2:
+        state.flags.append("human_review")  # the system abstains: a person should check this answer
+    state.trace.append(f"decision (min_agree={min_agree}): {state.final}")
+    state.add_step(
+        "decision", "vote", round=state.rounds, min_agree=min_agree,
+        votes={v.system.split(":", 1)[-1]: v.verdict for v in last},
+        final=state.final, final_round1=state.final_round1,
+    )
+    return state.final
 
 
 def verify_item(
@@ -71,34 +158,15 @@ def verify_item(
     prompt_style: str = DEFAULT_PROMPT_STYLE,
 ) -> VerificationState:
     state = VerificationState(item_id=item.item_id, evidence_mode=evidence_mode)
+    state.add_step("orchestrator", "start", verifiers=list(verifiers), evidence_mode=evidence_mode,
+                   prompt_style=prompt_style, min_agree=min_agree)
     state.evidence = gather_evidence(item, evidence_mode, pubmed, k, state)
     max_chars = None if evidence_mode == "source" else 1000
     evidence_text = format_evidence(state.evidence, max_chars=max_chars) if state.evidence else None
 
     for name, model in verifiers.items():
-        try:
-            res = model.chat(verifier_messages(item.question, item.answer, evidence_text, style=prompt_style))
-        except Exception as err:  # re-raised with the verifier name
-            raise VerifierCallError(name, model, err) from err
-        code = parse_for_style(res.text, prompt_style)
-        state.verdicts.append(
-            Verdict(
-                item_id=item.item_id,
-                system=f"verifier:{name}",
-                verdict=code,
-                raw_text=res.text,
-                provider=res.provider,
-                model=res.model,
-                latency_s=res.latency_s,
-                prompt_tokens=res.prompt_tokens,
-                completion_tokens=res.completion_tokens,
-                cached=res.cached,
-            )
-        )
-        state.trace.append(f"verifier {name}: {code}")
-
-    state.final = aggregate_votes([v.verdict for v in state.verdicts], min_agree=min_agree)
-    state.trace.append(f"decision (min_agree={min_agree}): {state.final}")
+        state.verdicts.append(judge(name, model, item, evidence_text, prompt_style, 1, state))
+    decide(state, min_agree)
     return state
 
 
@@ -130,42 +198,63 @@ def run_pipeline(
 
 # ---------------------------------------------------- views over states
 
-def final_verdicts(states: list[VerificationState], min_agree: Optional[int] = None) -> list[Verdict]:
-    """System-level verdicts; pass `min_agree` to re-apply a different vote rule offline."""
+def _round_verdicts(s: VerificationState, round_no: Optional[int]) -> list[Verdict]:
+    return s.last_round() if round_no is None else s.round_verdicts(round_no)
+
+
+def _decision(s: VerificationState, min_agree: Optional[int], round_no: Optional[int]):
+    """The saved decision, or a vote rule re-applied to one round."""
+    if min_agree is not None:
+        return aggregate_votes([v.verdict for v in _round_verdicts(s, round_no)], min_agree)
+    if round_no is None or round_no == s.rounds:
+        return s.final
+    if round_no == 1 and s.final_round1 is not None:
+        return s.final_round1
+    raise ValueError(f"{s.item_id}: no saved decision for round {round_no}; pass min_agree")
+
+
+def final_verdicts(
+    states: list[VerificationState], min_agree: Optional[int] = None, round: Optional[int] = None
+) -> list[Verdict]:
+    """System-level verdicts, offline (no model calls).
+
+    Default: the saved decision (from the last round). `min_agree` re-applies a vote rule;
+    `round` picks the round (1 = the independent verdicts, before any debate).
+    """
     out = []
     for s in states:
-        code = s.final if min_agree is None else aggregate_votes([v.verdict for v in s.verdicts], min_agree)
         out.append(
             Verdict(
                 item_id=s.item_id,
                 system="pipeline",
-                verdict=code,
+                verdict=_decision(s, min_agree, round),
                 raw_text="",
                 provider="pipeline",
-                model="+".join(v.model for v in s.verdicts),
+                model="+".join(v.model for v in s.first_round()),
                 latency_s=sum(v.latency_s for v in s.verdicts),
                 prompt_tokens=sum(v.prompt_tokens for v in s.verdicts),
                 completion_tokens=sum(v.completion_tokens for v in s.verdicts),
                 cached=all(v.cached for v in s.verdicts),
+                round=round or s.rounds,
             )
         )
     return out
 
 
 def verifier_verdicts(states: list[VerificationState]) -> dict[str, list[Verdict]]:
-    """Each verifier's own verdicts, for single-verifier scores and error overlap."""
+    """Each verifier's ROUND-1 (independent) verdicts, for single-verifier scores and error overlap."""
     by_name: dict[str, list[Verdict]] = {}
     for s in states:
-        for v in s.verdicts:
+        for v in s.first_round():
             by_name.setdefault(v.system.split(":", 1)[-1], []).append(v)
     return by_name
 
 
 def agreement_confidence(states: list[VerificationState]) -> dict[str, tuple[int, float]]:
-    """(majority label, share of verifiers backing it) per item, for risk-coverage curves."""
+    """(majority label, share of verifiers backing it) per item, from the LAST round, for risk-coverage curves."""
     out = {}
     for s in states:
-        codes = [v.verdict for v in s.verdicts]
+        codes = [v.verdict for v in s.last_round()]
         zeros, ones = codes.count(0), codes.count(1)
         label = 1 if ones > zeros else 0
         out[s.item_id] = (label, max(zeros, ones) / max(len(codes), 1))

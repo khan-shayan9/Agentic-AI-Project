@@ -209,7 +209,7 @@ def cmd_tune(args):
     config, items, states, _ = _load_run(args.run)
     if states is None:
         raise SystemExit("tune needs a pipeline run (states.jsonl)")
-    n_verifiers = max(len(s.verdicts) for s in states)
+    n_verifiers = max(len(s.last_round()) for s in states)
     rows, best = [], None
     for min_agree in range(1, n_verifiers + 1):
         m = evaluate(items, final_verdicts(states, min_agree), n_boot=0)["overall"]
