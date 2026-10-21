@@ -246,3 +246,33 @@ def test_config_records_models_prompt_hash_and_commit(workspace, monkeypatch):
     monkeypatch.setattr(requests, "get", offline)
     cli.main(["pipeline", "--split", "dev", "--name", "cfg2"])  # a failed lookup never stops the run
     assert json.loads((tmp / "results/runs/cfg2/config.json").read_text())["ollama_digests"] == {"fake-llama": None}
+
+
+@pytest.mark.parametrize("extra, changed", [
+    (["--seed", "1"], "seed None -> 1"),
+    (["--knowledge", "source"], "knowledge 'none' -> 'source'"),
+    (["--unsure"], "unsure False -> True"),
+    (["--model", "phi"], "model 'llama' -> 'phi'"),
+])
+def test_baseline_resume_refuses_another_setup(workspace, extra, changed):
+    tmp, models = workspace
+    cli.main(["prepare", "--test-per-level", "2", "--val-size", "6", "--dev-size", "3"])
+    cli.main(["baseline", "--model", "llama", "--split", "dev", "--name", "b"])
+    calls = len(models["llama"].calls)
+    cli.main(["baseline", "--model", "llama", "--split", "dev", "--name", "b"])  # same setup: resumes, no new calls
+    assert len(models["llama"].calls) == calls
+    with pytest.raises(SystemExit, match=f"{changed}.*new --name"):
+        cli.main(["baseline", "--split", "dev", "--name", "b", "--model", "llama"] + extra)
+
+
+def test_phase1_baseline_folder_counts_as_no_seed(workspace):
+    tmp, models = workspace
+    cli.main(["prepare", "--test-per-level", "2", "--val-size", "6", "--dev-size", "3"])
+    cli.main(["baseline", "--model", "llama", "--split", "dev", "--name", "old"])
+    config_path = tmp / "results/runs/old/config.json"
+    config = json.loads(config_path.read_text())
+    phase1 = {k: config[k] for k in ("model", "split", "knowledge", "unsure", "limit", "name", "provider", "model_id", "items")}
+    config_path.write_text(json.dumps(phase1))
+    cli.main(["baseline", "--model", "llama", "--split", "dev", "--name", "old"])  # resumes
+    with pytest.raises(SystemExit, match="seed None -> 7"):
+        cli.main(["baseline", "--model", "llama", "--split", "dev", "--name", "old", "--seed", "7"])

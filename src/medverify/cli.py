@@ -64,13 +64,40 @@ def _pipeline_setup(args, models: dict[str, str]) -> dict:
 def _saved_setup(config: dict) -> dict:
     """The setup stored in an older config.json, filling in Phase 1 defaults for missing options."""
     if "setup" in config:
-        return config["setup"]
+        return PHASE1_SETUP | config["setup"]
     setup = {"models": config.get("models")}
     for key, default in PHASE1_SETUP.items():
         setup[key] = config.get(key, default)
     if "no_reask" in config:
         setup["reask"] = not config["no_reask"]
     return setup
+
+
+# Baseline folders from Phase 1 have no "setup" in config.json; they count as no seed.
+BASELINE_DEFAULTS = {"knowledge": "none", "unsure": False, "seed": None}
+
+
+def _baseline_setup(args) -> dict:
+    """The baseline settings that must match before a run folder can be resumed."""
+    return {"model": args.model, "knowledge": args.knowledge, "unsure": args.unsure, "seed": args.seed}
+
+
+def _saved_baseline_setup(config: dict) -> dict:
+    if "setup" in config:
+        return config["setup"]
+    return {"model": config.get("model")} | {key: config.get(key, d) for key, d in BASELINE_DEFAULTS.items()}
+
+
+def _check_resume(out: Path, results: Path, saved: dict | None, setup: dict, what: str) -> None:
+    """Stop when a run folder already holds results that were made with another setup."""
+    if saved is None or not results.exists() or results.stat().st_size == 0:
+        return
+    changed = [f"{key} {saved.get(key)!r} -> {value!r}" for key, value in setup.items() if saved.get(key) != value]
+    if changed:
+        raise SystemExit(
+            f"{out} already holds results from {what} ({'; '.join(changed)}). "
+            "Use a new --name so the two runs are not mixed."
+        )
 
 
 def _git_commit() -> str | None:
@@ -160,10 +187,14 @@ def cmd_baseline(args):
     items = _items(args.split, args.limit)
     model = make_model(args.model, seed=model_seed(args.model, args.seed))
     out = _run_dir(args.name, f"baseline-{args.model}-{args.knowledge}-{args.split}")
-    config = vars(args) | {"provider": model.provider, "model_id": model.model, "items": len(items)}
+    setup = _baseline_setup(args)
+    config_path, preds_path = out / "config.json", out / "predictions.jsonl"
+    saved = _saved_baseline_setup(json.loads(config_path.read_text())) if config_path.exists() else None
+    _check_resume(out, preds_path, saved, setup, "another model or setting")
+    config = vars(args) | {"provider": model.provider, "model_id": model.model, "items": len(items), "setup": setup}
     config |= _verifier_record({args.model: model})
-    (out / "config.json").write_text(json.dumps(config, indent=2, default=str))
-    verdicts = run_baseline(items, model, args.knowledge, args.unsure, out / "predictions.jsonl")
+    config_path.write_text(json.dumps(config, indent=2, default=str))
+    verdicts = run_baseline(items, model, args.knowledge, args.unsure, preds_path)
     _score(out, items, verdicts)
 
 
@@ -190,14 +221,10 @@ def cmd_pipeline(args):
     setup = _pipeline_setup(args, models)
     states_path = out / "states.jsonl"
     old_config = out / "config.json"
-    if states_path.exists() and states_path.stat().st_size > 0 and old_config.exists():
-        old = _saved_setup(json.loads(old_config.read_text()))
-        changed = [f"{key} {old[key]!r} -> {setup[key]!r}" for key in setup if old[key] != setup[key]]
-        if old["models"] and changed:
-            raise SystemExit(
-                f"{out} already holds results from other verifiers or another prompt or setting "
-                f"({'; '.join(changed)}). Use a new --name so the two runs are not mixed."
-            )
+    saved = _saved_setup(json.loads(old_config.read_text())) if old_config.exists() else None
+    if saved is not None and not saved["models"]:
+        saved = None  # a folder with no record of its verifiers cannot be checked
+    _check_resume(out, states_path, saved, setup, "other verifiers or another prompt or setting")
     config = vars(args) | {"items": len(items), "models": models, "setup": setup}
     config |= _verifier_record(verifiers, args.prompt)
     old_config.write_text(json.dumps(config, indent=2, default=str))
