@@ -36,7 +36,7 @@ from .metrics import aggregate_forced, aggregate_votes
 from .parsing import parse_for_style
 from .prompts import DEFAULT_PROMPT_STYLE, debate_message, format_evidence, reask_message, verifier_messages
 from .schemas import Evidence, Item, LLMResult, ToolCall, TraceStep, Verdict, VerificationState
-from .tools.pubmed import PubMedSearch, claim_queries, keyword_queries
+from .tools.pubmed import PubMedError, PubMedSearch, claim_queries, keyword_queries
 
 EvidenceMode = Literal["none", "pubmed", "source"]
 SecondRound = Literal["off", "split", "no-majority"]
@@ -49,6 +49,15 @@ class VerifierCallError(RuntimeError):
     def __init__(self, name: str, model: ChatModel, err: Exception):
         self.name, self.provider, self.model, self.err = name, model.provider, model.model, err
         super().__init__(f"verifier '{name}' ({model.provider}:{model.model}) failed: {type(err).__name__}: {err}")
+
+
+def _pubmed_failed(state: VerificationState, round_no: int, err: PubMedError, outcome: str) -> None:
+    """PubMed still failed after its retries: flag the item and say what happened; the run goes on."""
+    if "pubmed_error" not in state.flags:
+        state.flags.append("pubmed_error")
+    prefix = "evidence" if round_no == 1 else f"evidence round {round_no}"
+    state.trace.append(f"{prefix}: PubMed failed ({err}); {outcome}")
+    state.add_step("evidence", "pubmed_error", round=round_no, message=str(err))
 
 
 def gather_evidence(
@@ -74,14 +83,20 @@ def gather_evidence(
         raise ValueError("evidence mode 'pubmed' needs a PubMedSearch tool")
     queries = keyword_queries(item.question)
     calls_before = len(getattr(pubmed, "calls", []))
-    kept, blocked = pubmed.retrieve(
-        queries,
-        k=k,
-        block_pmids=[item.pubid] if item.pubid else [],
-        block_texts=item.knowledge,
-        block=block,
-        retry=retry,
-    )
+    try:
+        kept, blocked = pubmed.retrieve(
+            queries,
+            k=k,
+            block_pmids=[item.pubid] if item.pubid else [],
+            block_texts=item.knowledge,
+            block=block,
+            retry=retry,
+        )
+    except PubMedError as err:  # no abstracts were gathered: the verifiers judge without evidence
+        state.tool_calls.extend(getattr(pubmed, "calls", [])[calls_before:])
+        state.query = queries[0]
+        _pubmed_failed(state, 1, err, "no abstracts, the verifiers judge without evidence")
+        return []
     state.tool_calls.extend(getattr(pubmed, "calls", [])[calls_before:])
     state.query = kept[0].query if kept else queries[0]
     state.blocked = blocked
@@ -224,7 +239,9 @@ def gather_claim_evidence(
     retry: bool = True,
 ) -> list[Evidence]:
     """Round-2 evidence: PubMed search with claim queries from the answer, the same source
-    blocking, and no abstract the verifiers have already seen. Returns up to k2 new abstracts."""
+    blocking, and no abstract the verifiers have already seen. Returns up to k2 new abstracts.
+
+    A PubMedError is raised to second_round(); the requests made so far are logged first."""
     queries = claim_queries(item.question, item.answer)
     if not queries:
         state.trace.append("evidence round 2: the answer adds no new keywords, no claim query")
@@ -232,19 +249,23 @@ def gather_claim_evidence(
         return []
     used = [e.pmid for e in state.evidence]
     calls_before = len(getattr(pubmed, "calls", []))
-    kept, blocked = pubmed.retrieve(
-        queries,
-        k=k2,
-        block_pmids=[item.pubid] if item.pubid else [],
-        block_texts=item.knowledge,
-        block=block,
-        retry=retry,
-        exclude_pmids=used,
-    )
-    new_calls = getattr(pubmed, "calls", [])[calls_before:]
-    for record in [*kept, *blocked, *new_calls]:
+    try:
+        kept, blocked = pubmed.retrieve(
+            queries,
+            k=k2,
+            block_pmids=[item.pubid] if item.pubid else [],
+            block_texts=item.knowledge,
+            block=block,
+            retry=retry,
+            exclude_pmids=used,
+        )
+    finally:  # a failed search still logs the requests it made, the failed one with its error
+        new_calls = getattr(pubmed, "calls", [])[calls_before:]
+        for call in new_calls:
+            call.round = 2
+        state.tool_calls.extend(new_calls)
+    for record in [*kept, *blocked]:
         record.round = 2
-    state.tool_calls.extend(new_calls)
     state.blocked.extend(blocked)
     query = kept[0].query if kept else queries[0]
     leaked = [{"pmid": e.pmid, "leak": e.leak} for e in kept if e.leak]
@@ -286,7 +307,11 @@ def second_round(
         state.trace.append(f"second round skipped (evidence mode '{evidence_mode}')")
         state.add_step("orchestrator", "second_round_skipped", round=2, reason=f"evidence mode '{evidence_mode}'")
         return
-    new = gather_claim_evidence(item, pubmed, k2, state, block, retry)
+    try:
+        new = gather_claim_evidence(item, pubmed, k2, state, block, retry)
+    except PubMedError as err:  # same as no new evidence: round-1 votes stand, no extra model calls
+        _pubmed_failed(state, 2, err, "no new evidence, round-1 votes stand")
+        return
     if not new:
         state.flags.append("no_new_evidence")  # round-1 votes and decision stand, no extra model calls
         state.trace.append("second round: no new evidence, round-1 votes stand")

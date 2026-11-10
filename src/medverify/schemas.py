@@ -135,6 +135,7 @@ class ToolCall(BaseModel):
     cached: bool
     latency_s: float
     round: int = 1  # evidence round that made the call
+    error: Optional[str] = None  # set when the request still failed after all retries
 
 
 class VerificationState(BaseModel):

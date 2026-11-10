@@ -1,0 +1,74 @@
+{
+  "command": "pipeline",
+  "verifiers": "llama,mistral-local,phi",
+  "evidence": "pubmed",
+  "split": "dev",
+  "k": 3,
+  "no_block": false,
+  "second_round": "split",
+  "k2": 2,
+  "no_retry": false,
+  "min_agree": 2,
+  "prompt": "reason",
+  "temperature": 0.0,
+  "seed": null,
+  "debate": false,
+  "no_reask": false,
+  "max_tokens": null,
+  "limit": null,
+  "name": "old",
+  "func": "<function cmd_pipeline at 0x0000025B0FCD8220>",
+  "items": 2,
+  "models": {
+    "llama": "fake-llama",
+    "mistral-local": "fake-mistral",
+    "phi": "fake-phi"
+  },
+  "setup": {
+    "models": {
+      "llama": "fake-llama",
+      "mistral-local": "fake-mistral",
+      "phi": "fake-phi"
+    },
+    "prompt": "reason",
+    "temperature": 0.0,
+    "seed": null,
+    "evidence": "pubmed",
+    "debate": false,
+    "reask": true,
+    "block": true,
+    "retry": true,
+    "second_round": "split",
+    "k2": 2
+  },
+  "model_settings": {
+    "llama": {
+      "provider": "fake",
+      "model_id": "fake-llama",
+      "temperature": null,
+      "top_p": null,
+      "max_tokens": null,
+      "seed": null
+    },
+    "mistral-local": {
+      "provider": "fake",
+      "model_id": "fake-mistral",
+      "temperature": null,
+      "top_p": null,
+      "max_tokens": null,
+      "seed": null
+    },
+    "phi": {
+      "provider": "fake",
+      "model_id": "fake-phi",
+      "temperature": null,
+      "top_p": null,
+      "max_tokens": null,
+      "seed": null
+    }
+  },
+  "git_commit": "e64d26af5bdfff5f90bdb8b7acec8104f6119286",
+  "ollama_digests": {},
+  "prompt_style": "reason",
+  "verifier_instructions_sha256": "70e4ab9998ce8eb88cd13966f73cb14fb469071b6c2b24903f3482abf599df3a"
+}

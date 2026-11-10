@@ -18,6 +18,7 @@ import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Iterable, Optional
+from urllib.parse import urlencode
 
 import requests
 
@@ -25,6 +26,16 @@ from ..schemas import BlockedEvidence, Evidence, ToolCall
 
 EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 _WORD = re.compile(r"[a-z0-9]+")
+MAX_ATTEMPTS = 6  # NCBI sometimes answers 400, 429 or 5xx when busy; these are retried
+
+
+class PubMedError(RuntimeError):
+    """A PubMed request still failed after all attempts (HTTP 400, 429 or 5xx, or no response)."""
+
+    def __init__(self, endpoint: str, status: Optional[int], url: str):
+        self.endpoint, self.status, self.url = endpoint, status, url
+        last = f"HTTP {status}" if status is not None else "no response (connection error or timeout)"
+        super().__init__(f"PubMed {endpoint} failed {MAX_ATTEMPTS} times, last: {last}; request: {url}")
 
 _STOPWORDS = set(
     """a an the and or of in on at to for with by from as is are was were be been being do does did
@@ -112,6 +123,8 @@ class PubMedSearch:
     # -------------------------------------------------------------- HTTP
 
     def _get(self, endpoint: str, params: dict) -> str:
+        # for error messages only: the caller's own parameters, never the email or API key
+        shown_url = f"{EUTILS}/{endpoint}?{urlencode(params, safe=',')}"
         params = {**params, "tool": "medverify"}
         if self.email:
             params["email"] = self.email
@@ -123,25 +136,31 @@ class PubMedSearch:
         if self.last_cached:
             return cached.read_text(encoding="utf-8")
 
-        for attempt in range(5):
+        status: Optional[int] = None
+        for attempt in range(MAX_ATTEMPTS):
+            if attempt:
+                time.sleep(min(2 ** (attempt - 1), 30))  # 1, 2, 4, 8, 16 s between attempts
             wait = self.min_interval - (time.monotonic() - self._last)
             if wait > 0:
                 time.sleep(wait)
             self._last = time.monotonic()
-            resp = self.session.get(f"{EUTILS}/{endpoint}", params=params, timeout=30)
-            if resp.status_code == 429 or resp.status_code >= 500:
-                time.sleep(2 ** attempt)
+            try:
+                resp = self.session.get(f"{EUTILS}/{endpoint}", params=params, timeout=30)
+            except (requests.ConnectionError, requests.Timeout):
+                status = None
                 continue
+            status = resp.status_code
+            if status in (400, 429) or status >= 500:
+                continue  # never cached
             resp.raise_for_status()
             cached.write_text(resp.text, encoding="utf-8")
             return resp.text
-        resp.raise_for_status()
-        return resp.text
+        raise PubMedError(endpoint, status, shown_url)
 
-    def _log(self, tool: str, query: str, n_results: int, started: float) -> None:
+    def _log(self, tool: str, query: str, n_results: int, started: float, error: Optional[str] = None) -> None:
         self.calls.append(
             ToolCall(tool=tool, input=query, n_results=n_results, cached=self.last_cached,
-                     latency_s=round(time.monotonic() - started, 3))
+                     latency_s=round(time.monotonic() - started, 3), error=error)
         )
 
     # ------------------------------------------------------------ search
@@ -149,10 +168,14 @@ class PubMedSearch:
     def search(self, query: str, retmax: int = 10) -> list[str]:
         """Return PMIDs that match the query, most relevant first."""
         started = time.monotonic()
-        text = self._get(
-            "esearch.fcgi",
-            {"db": "pubmed", "term": query, "retmax": retmax, "retmode": "json", "sort": "relevance"},
-        )
+        try:
+            text = self._get(
+                "esearch.fcgi",
+                {"db": "pubmed", "term": query, "retmax": retmax, "retmode": "json", "sort": "relevance"},
+            )
+        except PubMedError as err:
+            self._log("pubmed.esearch", query, 0, started, error=str(err))
+            raise
         pmids = json.loads(text)["esearchresult"].get("idlist", [])
         self._log("pubmed.esearch", query, len(pmids), started)
         return pmids
@@ -162,7 +185,11 @@ class PubMedSearch:
         if not pmids:
             return {}
         started = time.monotonic()
-        xml = self._get("efetch.fcgi", {"db": "pubmed", "id": ",".join(pmids), "retmode": "xml"})
+        try:
+            xml = self._get("efetch.fcgi", {"db": "pubmed", "id": ",".join(pmids), "retmode": "xml"})
+        except PubMedError as err:
+            self._log("pubmed.efetch", ",".join(pmids), 0, started, error=str(err))
+            raise
         out: dict[str, tuple[str, str]] = {}
         root = ET.fromstring(xml)
         for art in root.iter("PubmedArticle"):

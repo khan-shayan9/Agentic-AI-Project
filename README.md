@@ -196,6 +196,7 @@ These are early validation results. So far the three model families share many m
 - **The verifier prompt is `reason`** (a short check, then `Verdict: ...`), chosen on the validation split over `digits` and `words` (vote F1 0.680 vs 0.595 and 0.447).
 - **The vote rule stays at 2 of 3**, although `tune` preferred 1 of 3: 2 of 3 is a true majority, it abstains more often so gap 3 can be measured, and its accuracy on answered items is within 1-2 answers of 1 of 3 (0.646 vs 0.654).
 - **New in Phase 2:** a second evidence round with claim queries when the votes split (the agentic loop from the proposal), one re-ask when a reply has no readable verdict, a debate ablation, seeds for repeat runs, structured trajectories (`steps`) and PubMed tool-call logs (`tool_calls`), leakage and efficiency summaries, and a resume check for baseline folders. See [docs/devlog.md](docs/devlog.md).
+- **A PubMed error no longer stops a run:** requests that get HTTP 400, 429 or 5xx, or no response, are retried up to 6 times; if PubMed still fails, the item is flagged `pubmed_error` and judged without the missing evidence (the round-1 votes stand in round 2), and `evaluate` counts these items.
 
 ## Phase 2 experiments
 

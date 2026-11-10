@@ -145,7 +145,11 @@ def _ollama_digests(models: dict) -> dict[str, str | None]:
         found = {t.get("name"): t.get("digest") for t in tags} | {t.get("model"): t.get("digest") for t in tags}
     except Exception:
         found = {}
-    return {name: found.get(name) for name in wanted}
+    digests = {}
+    for name in wanted:
+        tagged = ":" in name.rsplit("/", 1)[-1]  # Ollama lists an untagged "phi4-mini" as "phi4-mini:latest"
+        digests[name] = found.get(name) or (None if tagged else found.get(f"{name}:latest"))
+    return digests
 
 
 def _verifier_record(models: dict, prompt_style: str | None = None) -> dict:

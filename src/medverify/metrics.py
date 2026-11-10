@@ -276,6 +276,7 @@ def efficiency_summary(states: Iterable[VerificationState]) -> dict:
         "round2_triggered_share": triggered / n,
         "round2_share": sum(s.rounds >= 2 for s in states) / n,
         "no_new_evidence_share": sum("no_new_evidence" in s.flags for s in states) / n,
+        "pubmed_errors": sum("pubmed_error" in s.flags for s in states),  # items where PubMed still failed
         "reasks": sum(v.reasked for v in verdicts),
         "abstain_share": sum(s.final == 2 for s in states) / n,
         "unreadable_replies": sum(v.verdict is None for v in verdicts),
@@ -305,6 +306,7 @@ def format_summaries(leakage: dict, efficiency: dict) -> str:
             f"round 2: triggered {e['round2_triggered_share']:.3f}, judged {e['round2_share']:.3f}, "
             f"no new evidence {e['no_new_evidence_share']:.3f}; re-asks {e['reasks']}, "
             f"abstain {e['abstain_share']:.3f}, unreadable replies {e['unreadable_replies']}",
+            f"items with a PubMed error (still failing after retries): {e['pubmed_errors']}",
         ]
         if e.get("max_prompt_tokens", 0) >= CONTEXT_WARN_TOKENS:
             lines.append(

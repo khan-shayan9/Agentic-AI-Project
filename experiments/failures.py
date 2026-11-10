@@ -63,6 +63,8 @@ def outcome(decision: Optional[int], label: int) -> str:
 
 def evidence_state(state: VerificationState, label: int) -> str:
     """What happened to the evidence and the second round for this item (one label per item)."""
+    if "pubmed_error" in state.flags:
+        return "PubMed error"
     if state.rounds >= 2:
         before, after = outcome(state.final_round1, label), outcome(state.final, label)
         if before == after:
