@@ -131,7 +131,7 @@ import csv  # noqa: E402
 import shutil  # noqa: E402
 from pathlib import Path  # noqa: E402
 
-SAMPLE = Path(__file__).parents[1] / "examples" / "sample_items.csv"
+SAMPLE = Path(__file__).parents[1] / "data" / "sample_items.csv"
 
 
 def read_out(path):

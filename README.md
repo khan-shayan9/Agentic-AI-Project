@@ -23,7 +23,7 @@ python -m medverify verify --question "Does a daily walk after dinner lower fast
     --answer "Walking after dinner raised fasting glucose." [--pmid 12345678] [--json]
 
 # a CSV file (columns question, answer, optional pmid): results.csv plus results.states.jsonl
-python -m medverify batch --input examples/sample_items.csv --output results.csv
+python -m medverify batch --input data/sample_items.csv --output results.csv
 
 # the web app
 pip install -e ".[app]"
@@ -56,6 +56,8 @@ src/medverify/
   cli.py          the `python -m medverify` commands (including verify and batch)
   service.py      verify one item or a CSV for a user (shared by the CLI and the web app)
   explain.py      plain-English views of a result (decision, votes, reasons, evidence)
+data/             download and split instructions (data/README.md) and sample_items.csv; datasets are
+                  downloaded by `python -m medverify prepare`, not committed
 experiments/      Phase 2 run plan (plan.py), runner (run.py), val-only trigger choice (choose.py), cache backup
                   (state.py), export to results/phase2 (export.py) and the report (report.py, gaps.py,
                   failures.py, figures.py, stats.py, facts.py)
@@ -63,7 +65,6 @@ results/          phase1/ (Phase 1 files) and phase2/ (exported runs, tables, fi
 logs/             agent trajectory samples and representative cases (see logs/README.md)
 notebooks/        Colab notebooks: Phase 1 baseline, and Phase 2 experiments (also runs on Kaggle)
 app/              Streamlit web app (streamlit_app.py) and its pure helpers (helpers.py)
-examples/         sample_items.csv: five made-up items to try `medverify batch`
 tests/            offline tests (fake models, no internet needed)
 docs/             architecture and development log (docs/devlog.md)
 ```
