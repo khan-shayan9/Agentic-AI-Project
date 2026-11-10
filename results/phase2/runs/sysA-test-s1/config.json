@@ -1,0 +1,78 @@
+{
+  "command": "pipeline",
+  "verifiers": "llama,mistral-local,phi",
+  "evidence": "pubmed",
+  "split": "test",
+  "k": 3,
+  "no_block": false,
+  "second_round": "no-majority",
+  "k2": 2,
+  "no_retry": false,
+  "min_agree": 2,
+  "prompt": "reason",
+  "temperature": 0.0,
+  "seed": 1,
+  "debate": false,
+  "no_reask": false,
+  "max_tokens": null,
+  "limit": null,
+  "name": "sysA-test-s1",
+  "func": "<function cmd_pipeline at 0x796f5f337ec0>",
+  "items": 600,
+  "models": {
+    "llama": "llama3.1:8b",
+    "mistral-local": "mistral:7b",
+    "phi": "phi4-mini"
+  },
+  "setup": {
+    "models": {
+      "llama": "llama3.1:8b",
+      "mistral-local": "mistral:7b",
+      "phi": "phi4-mini"
+    },
+    "prompt": "reason",
+    "temperature": 0.0,
+    "seed": 1,
+    "evidence": "pubmed",
+    "debate": false,
+    "reask": true,
+    "block": true,
+    "retry": true,
+    "second_round": "no-majority",
+    "k2": 2
+  },
+  "model_settings": {
+    "llama": {
+      "provider": "ollama",
+      "model_id": "llama3.1:8b",
+      "temperature": 0.0,
+      "top_p": 0.95,
+      "max_tokens": 512,
+      "seed": 1
+    },
+    "mistral-local": {
+      "provider": "ollama",
+      "model_id": "mistral:7b",
+      "temperature": 0.0,
+      "top_p": 0.95,
+      "max_tokens": 512,
+      "seed": 1
+    },
+    "phi": {
+      "provider": "ollama",
+      "model_id": "phi4-mini",
+      "temperature": 0.0,
+      "top_p": 0.95,
+      "max_tokens": 512,
+      "seed": 1
+    }
+  },
+  "git_commit": "e51ab18e59c71873acd3516f0e0d7be765662df3",
+  "ollama_digests": {
+    "llama3.1:8b": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e",
+    "mistral:7b": "6577803aa9a036369e481d648a2baebb381ebc6e897f2bb9a766a2aa7bfbc1cf",
+    "phi4-mini": "78fad5d182a7c33065e153a5f8ba210754207ba9d91973f57dffa7f487363753"
+  },
+  "prompt_style": "reason",
+  "verifier_instructions_sha256": "70e4ab9998ce8eb88cd13966f73cb14fb469071b6c2b24903f3482abf599df3a"
+}

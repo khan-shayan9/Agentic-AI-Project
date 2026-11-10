@@ -1,0 +1,266 @@
+{
+  "why": "success: hard hallucination caught",
+  "failure_category": "correct",
+  "run": "sysA-test-s1",
+  "item": {
+    "item_id": "pqa_labeled-00001-hal",
+    "row_id": "pqa_labeled-00001",
+    "question": "Landolt C and snellen e acuity: differences in strabismus amblyopia?",
+    "answer": "Patients with strabismus amblyopia showed a significant underestimation of visual acuity when assessed with the Landolt C chart compared to the Snellen E chart.",
+    "label": 1,
+    "difficulty": "hard",
+    "category": "Incomplete Information",
+    "pubid": 16418930
+  },
+  "state": {
+    "item_id": "pqa_labeled-00001-hal",
+    "evidence_mode": "pubmed",
+    "query": "landolt snellen acuity differences strabismus amblyopia",
+    "evidence": [
+      {
+        "pmid": "33853189",
+        "title": "Establishing Prediction Intervals for the SpeedWheel Acuity Test in Adults and Children.",
+        "text": "BACKGROUND: The SpeedWheel (SW) test is an objective test of visual acuity (VA) using suppression of the optokinetic nystagmus (OKN). Here, we established prediction intervals of the SW measures compared to Snellen acuity in adults and children. SUBJECTS AND METHODS: In this prospective, single cent",
+        "query": "landolt snellen acuity differences strabismus amblyopia",
+        "rank": 1,
+        "leak": null,
+        "round": 1
+      },
+      {
+        "pmid": "8170100",
+        "title": "[Objective vernier acuity testing in adults, children and infants. Possibilities and limits of a new method].",
+        "text": "BACKGROUND: Recently, a method of objective Vernier acuity testing using a modified Catford drum was presented. A tight correlation between the objective Vernier acuity and the Snellen acuity was reported (Hopkisson et al. 1991). PATIENTS AND METHODS: In 41 cooperative patients with strabismic ambly",
+        "query": "landolt snellen acuity differences strabismus amblyopia",
+        "rank": 2,
+        "leak": null,
+        "round": 1
+      }
+    ],
+    "blocked": [
+      {
+        "pmid": "16418930",
+        "reason": "source_pmid",
+        "overlap": 1.0,
+        "round": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "item_id": "pqa_labeled-00001-hal",
+        "system": "verifier:llama",
+        "verdict": 1,
+        "raw_text": "The answer claims that patients with strabismus amblyopia show a significant underestimation of visual acuity when assessed with the Landolt C chart compared to the Snellen E chart.\n\nHowever, the provided evidence does not support this claim. In fact, evidence [2] PMID 8170100 compares the objective Vernier acuity with the subjective Landolt acuity in patients with strabismic amblyopia, but it does not mention a comparison between the Landolt C chart and the Snellen E chart.\n\nVerdict: HALLUCINATED",
+        "provider": "ollama",
+        "model": "llama3.1:8b",
+        "latency_s": 4.121,
+        "prompt_tokens": 783,
+        "completion_tokens": 114,
+        "cached": false,
+        "round": 1,
+        "reasked": false
+      },
+      {
+        "item_id": "pqa_labeled-00001-hal",
+        "system": "verifier:mistral-local",
+        "verdict": 1,
+        "raw_text": "The answer claims that patients with strabismus amblyopia show a significant underestimation of visual acuity when assessed with the Landolt C chart compared to the Snellen E chart.\n\nThe evidence provided [1] discusses the SpeedWheel test, not the Landolt C or Snellen E charts, and does not mention strabismus amblyopia. Therefore, the answer is HALLUCINATED.\n\n[2] provides evidence of a correlation between objective Vernier acuity and Snellen acuity, but it does not directly compare Landolt C and Snellen E acuity in patients with strabismus amblyopia. However, it does suggest that Vernier acuity testing could be a useful method for testing visual acuity in infants and patients with strabismus amblyopia. This evidence does not support the claim in the answer, so the answer remains HALLUCINATED.\n\nVerdict: HALLUCINATED",
+        "provider": "ollama",
+        "model": "mistral:7b",
+        "latency_s": 6.901,
+        "prompt_tokens": 896,
+        "completion_tokens": 205,
+        "cached": false,
+        "round": 1,
+        "reasked": false
+      },
+      {
+        "item_id": "pqa_labeled-00001-hal",
+        "system": "verifier:phi",
+        "verdict": 0,
+        "raw_text": "The answer correctly states that patients with strabismus amblyopia often show a significant underestimation of visual acuity when assessed with the Landolt C chart compared to the Snellen E chart. This is consistent with the known differences in visual acuity testing methods and their sensitivity to various visual field defects.\n\nVerdict: FACTUAL",
+        "provider": "ollama",
+        "model": "phi4-mini",
+        "latency_s": 1.425,
+        "prompt_tokens": 767,
+        "completion_tokens": 68,
+        "cached": false,
+        "round": 1,
+        "reasked": false
+      }
+    ],
+    "final": 1,
+    "trace": [
+      "evidence: pubmed query='landolt snellen acuity differences strabismus amblyopia' kept=2 blocked=1",
+      "verifier llama: 1",
+      "verifier mistral-local: 1",
+      "verifier phi: 0",
+      "second round (no-majority): not needed",
+      "decision (min_agree=2): 1"
+    ],
+    "steps": [
+      {
+        "step": 1,
+        "agent": "orchestrator",
+        "action": "start",
+        "detail": {
+          "verifiers": [
+            "llama",
+            "mistral-local",
+            "phi"
+          ],
+          "evidence_mode": "pubmed",
+          "prompt_style": "reason",
+          "min_agree": 2,
+          "reask": true,
+          "debate": false,
+          "block": true,
+          "retry": true,
+          "second_round": "no-majority",
+          "k2": 2
+        },
+        "t": 0.0
+      },
+      {
+        "step": 2,
+        "agent": "evidence",
+        "action": "pubmed_search",
+        "detail": {
+          "round": 1,
+          "queries": [
+            "landolt snellen acuity differences strabismus amblyopia",
+            "landolt snellen acuity differences strabismus",
+            "landolt snellen acuity"
+          ],
+          "query": "landolt snellen acuity differences strabismus amblyopia",
+          "kept": [
+            "33853189",
+            "8170100"
+          ],
+          "blocked": [
+            {
+              "pmid": "16418930",
+              "reason": "source_pmid"
+            }
+          ],
+          "leaked": [],
+          "block": true,
+          "retry": true
+        },
+        "t": 0.003
+      },
+      {
+        "step": 3,
+        "agent": "verifier",
+        "action": "judge",
+        "detail": {
+          "verifier": "llama",
+          "round": 1,
+          "input_messages": 2,
+          "input_chars": 3293,
+          "input_sha256": "6017240a0146655f4dcac59c2cacd8e3de0f1b4945a43cc703c28240f2b7e2f3",
+          "raw_reply": "The answer claims that patients with strabismus amblyopia show a significant underestimation of visual acuity when assessed with the Landolt C chart compared to the Snellen E chart.\n\nHowever, the provided evidence does not support this claim. In fact, evidence [2] PMID 8170100 compares the objective Vernier acuity with the subjective Landolt acuity in patients with strabismic amblyopia, but it does not mention a comparison between the Landolt C chart and the Snellen E chart.\n\nVerdict: HALLUCINATED",
+          "verdict": 1,
+          "latency_s": 4.121,
+          "prompt_tokens": 783,
+          "completion_tokens": 114,
+          "cached": false
+        },
+        "t": 4.132
+      },
+      {
+        "step": 4,
+        "agent": "verifier",
+        "action": "judge",
+        "detail": {
+          "verifier": "mistral-local",
+          "round": 1,
+          "input_messages": 2,
+          "input_chars": 3293,
+          "input_sha256": "6017240a0146655f4dcac59c2cacd8e3de0f1b4945a43cc703c28240f2b7e2f3",
+          "raw_reply": "The answer claims that patients with strabismus amblyopia show a significant underestimation of visual acuity when assessed with the Landolt C chart compared to the Snellen E chart.\n\nThe evidence provided [1] discusses the SpeedWheel test, not the Landolt C or Snellen E charts, and does not mention strabismus amblyopia. Therefore, the answer is HALLUCINATED.\n\n[2] provides evidence of a correlation between objective Vernier acuity and Snellen acuity, but it does not directly compare Landolt C and Snellen E acuity in patients with strabismus amblyopia. However, it does suggest that Vernier acuity testing could be a useful method for testing visual acuity in infants and patients with strabismus amblyopia. This evidence does not support the claim in the answer, so the answer remains HALLUCINATED.\n\nVerdict: HALLUCINATED",
+          "verdict": 1,
+          "latency_s": 6.901,
+          "prompt_tokens": 896,
+          "completion_tokens": 205,
+          "cached": false
+        },
+        "t": 11.042
+      },
+      {
+        "step": 5,
+        "agent": "verifier",
+        "action": "judge",
+        "detail": {
+          "verifier": "phi",
+          "round": 1,
+          "input_messages": 2,
+          "input_chars": 3293,
+          "input_sha256": "6017240a0146655f4dcac59c2cacd8e3de0f1b4945a43cc703c28240f2b7e2f3",
+          "raw_reply": "The answer correctly states that patients with strabismus amblyopia often show a significant underestimation of visual acuity when assessed with the Landolt C chart compared to the Snellen E chart. This is consistent with the known differences in visual acuity testing methods and their sensitivity to various visual field defects.\n\nVerdict: FACTUAL",
+          "verdict": 0,
+          "latency_s": 1.425,
+          "prompt_tokens": 767,
+          "completion_tokens": 68,
+          "cached": false
+        },
+        "t": 12.476
+      },
+      {
+        "step": 6,
+        "agent": "orchestrator",
+        "action": "second_round_check",
+        "detail": {
+          "round": 2,
+          "rule": "no-majority",
+          "triggered": false,
+          "round1_votes": [
+            1,
+            1,
+            0
+          ]
+        },
+        "t": 12.476
+      },
+      {
+        "step": 7,
+        "agent": "decision",
+        "action": "vote",
+        "detail": {
+          "round": 1,
+          "min_agree": 2,
+          "votes": {
+            "llama": 1,
+            "mistral-local": 1,
+            "phi": 0
+          },
+          "final": 1,
+          "final_round1": 1
+        },
+        "t": 12.476
+      }
+    ],
+    "tool_calls": [
+      {
+        "tool": "pubmed.esearch",
+        "input": "landolt snellen acuity differences strabismus amblyopia",
+        "n_results": 3,
+        "cached": true,
+        "latency_s": 0.001,
+        "round": 1,
+        "error": null
+      },
+      {
+        "tool": "pubmed.efetch",
+        "input": "16418930,33853189,8170100",
+        "n_results": 3,
+        "cached": true,
+        "latency_s": 0.002,
+        "round": 1,
+        "error": null
+      }
+    ],
+    "rounds": 1,
+    "final_round1": 1,
+    "flags": []
+  }
+}

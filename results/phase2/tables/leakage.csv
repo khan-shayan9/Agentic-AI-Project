@@ -1,0 +1,3 @@
+run,round,items_searched,source_pmid_share,near_duplicate_share,leaked_into_evidence_share,mean_clean_abstracts,items_no_evidence,items_no_evidence_share,kept_leaks
+sysA-test-s1,round1,600,0.8333333333333334,0.0,0.0,2.546666666666667,12,0.02,0
+sysA-test-s1,round2,96,0.3958333333333333,0.0,0.0,1.8645833333333333,1,0.010416666666666666,

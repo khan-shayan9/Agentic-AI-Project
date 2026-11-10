@@ -1,0 +1,256 @@
+{
+  "why": "failure: false alarm - all verifiers",
+  "failure_category": "false alarm - all verifiers",
+  "run": "sysA-test-s1",
+  "item": {
+    "item_id": "pqa_labeled-00009-gt",
+    "row_id": "pqa_labeled-00009",
+    "question": "A short stay or 23-hour ward in a general and academic children's hospital: are they effective?",
+    "answer": "This data demonstrates the robust nature of the short stay ward. At these two very different institutions we have shown improved bed efficient and patient care in a cost-effective way. We have also reported on greater parental satisfaction and early return of the child with their family to the community.",
+    "label": 0,
+    "difficulty": "hard",
+    "category": "Incomplete Information",
+    "pubid": 10966337
+  },
+  "state": {
+    "item_id": "pqa_labeled-00009-gt",
+    "evidence_mode": "pubmed",
+    "query": "short stay hour ward general academic children hospital",
+    "evidence": [
+      {
+        "pmid": "27885969",
+        "title": "36th International Symposium on Intensive Care and Emergency Medicine : Brussels, Belgium. 15-18 March 2016.",
+        "text": "P001 - Sepsis impairs the capillary response within hypoxic capillaries and decreases erythrocyte oxygen-dependent ATP efflux R. M. Bateman, M. D. Sharpe, J. E. Jagger, C. G. Ellis P002 - Lower serum immunoglobulin G2 level does not predispose to severe flu. J. Solé-Violán, M. López-Rodríguez, E. He",
+        "query": "short stay hour ward general academic children hospital",
+        "rank": 1,
+        "leak": null,
+        "round": 1
+      }
+    ],
+    "blocked": [
+      {
+        "pmid": "10966337",
+        "reason": "source_pmid",
+        "overlap": 1.0,
+        "round": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "item_id": "pqa_labeled-00009-gt",
+        "system": "verifier:llama",
+        "verdict": 1,
+        "raw_text": "The answer does not mention any specific data or evidence from the provided PubMed references, and it appears to be making general claims about the effectiveness of short stay wards.\n\nVerdict: HALLUCINATED",
+        "provider": "ollama",
+        "model": "llama3.1:8b",
+        "latency_s": 1.869,
+        "prompt_tokens": 628,
+        "completion_tokens": 41,
+        "cached": false,
+        "round": 1,
+        "reasked": false
+      },
+      {
+        "item_id": "pqa_labeled-00009-gt",
+        "system": "verifier:mistral-local",
+        "verdict": 1,
+        "raw_text": "The answer does not directly address the question about the effectiveness of a short stay or 23-hour ward in a general and academic children's hospital. While the evidence provided discusses various aspects of sepsis and immunoglobulin treatment, there is no information about the effectiveness of short stay wards. Verdict: HALLUCINATED.",
+        "provider": "ollama",
+        "model": "mistral:7b",
+        "latency_s": 3.053,
+        "prompt_tokens": 731,
+        "completion_tokens": 76,
+        "cached": false,
+        "round": 1,
+        "reasked": false
+      },
+      {
+        "item_id": "pqa_labeled-00009-gt",
+        "system": "verifier:phi",
+        "verdict": 1,
+        "raw_text": "The answer claims that short stays or 23-hour wards in children's hospitals are effective, citing improved bed efficiency, patient care, cost-effectiveness, parental satisfaction, and early return of children to the community. However, the provided evidence does not directly support these claims or provide specific data related to short stays or 23-hour wards in children's hospitals.\n\nYour check: The answer makes broad claims about the effectiveness of short stays or 23-hour wards in children's hospitals but lacks direct evidence from the provided references to support these claims.\n\nYour verdict: HALLUCINATED",
+        "provider": "ollama",
+        "model": "phi4-mini",
+        "latency_s": 2.523,
+        "prompt_tokens": 594,
+        "completion_tokens": 113,
+        "cached": false,
+        "round": 1,
+        "reasked": false
+      }
+    ],
+    "final": 1,
+    "trace": [
+      "evidence: pubmed query='short stay hour ward general academic children hospital' kept=1 blocked=1",
+      "verifier llama: 1",
+      "verifier mistral-local: 1",
+      "verifier phi: 1",
+      "second round (no-majority): not needed",
+      "decision (min_agree=2): 1"
+    ],
+    "steps": [
+      {
+        "step": 1,
+        "agent": "orchestrator",
+        "action": "start",
+        "detail": {
+          "verifiers": [
+            "llama",
+            "mistral-local",
+            "phi"
+          ],
+          "evidence_mode": "pubmed",
+          "prompt_style": "reason",
+          "min_agree": 2,
+          "reask": true,
+          "debate": false,
+          "block": true,
+          "retry": true,
+          "second_round": "no-majority",
+          "k2": 2
+        },
+        "t": 0.0
+      },
+      {
+        "step": 2,
+        "agent": "evidence",
+        "action": "pubmed_search",
+        "detail": {
+          "round": 1,
+          "queries": [
+            "short stay hour ward general academic children hospital",
+            "short stay hour ward general",
+            "short stay hour"
+          ],
+          "query": "short stay hour ward general academic children hospital",
+          "kept": [
+            "27885969"
+          ],
+          "blocked": [
+            {
+              "pmid": "10966337",
+              "reason": "source_pmid"
+            }
+          ],
+          "leaked": [],
+          "block": true,
+          "retry": true
+        },
+        "t": 1.195
+      },
+      {
+        "step": 3,
+        "agent": "verifier",
+        "action": "judge",
+        "detail": {
+          "verifier": "llama",
+          "round": 1,
+          "input_messages": 2,
+          "input_chars": 2351,
+          "input_sha256": "d0c869b54963430ecf2841da4ddba9b7e119ad5c2d9ecdca6f5195fcd2a852b7",
+          "raw_reply": "The answer does not mention any specific data or evidence from the provided PubMed references, and it appears to be making general claims about the effectiveness of short stay wards.\n\nVerdict: HALLUCINATED",
+          "verdict": 1,
+          "latency_s": 1.869,
+          "prompt_tokens": 628,
+          "completion_tokens": 41,
+          "cached": false
+        },
+        "t": 3.075
+      },
+      {
+        "step": 4,
+        "agent": "verifier",
+        "action": "judge",
+        "detail": {
+          "verifier": "mistral-local",
+          "round": 1,
+          "input_messages": 2,
+          "input_chars": 2351,
+          "input_sha256": "d0c869b54963430ecf2841da4ddba9b7e119ad5c2d9ecdca6f5195fcd2a852b7",
+          "raw_reply": "The answer does not directly address the question about the effectiveness of a short stay or 23-hour ward in a general and academic children's hospital. While the evidence provided discusses various aspects of sepsis and immunoglobulin treatment, there is no information about the effectiveness of short stay wards. Verdict: HALLUCINATED.",
+          "verdict": 1,
+          "latency_s": 3.053,
+          "prompt_tokens": 731,
+          "completion_tokens": 76,
+          "cached": false
+        },
+        "t": 6.136
+      },
+      {
+        "step": 5,
+        "agent": "verifier",
+        "action": "judge",
+        "detail": {
+          "verifier": "phi",
+          "round": 1,
+          "input_messages": 2,
+          "input_chars": 2351,
+          "input_sha256": "d0c869b54963430ecf2841da4ddba9b7e119ad5c2d9ecdca6f5195fcd2a852b7",
+          "raw_reply": "The answer claims that short stays or 23-hour wards in children's hospitals are effective, citing improved bed efficiency, patient care, cost-effectiveness, parental satisfaction, and early return of children to the community. However, the provided evidence does not directly support these claims or provide specific data related to short stays or 23-hour wards in children's hospitals.\n\nYour check: The answer makes broad claims about the effectiveness of short stays or 23-hour wards in children's hospitals but lacks direct evidence from the provided references to support these claims.\n\nYour verdict: HALLUCINATED",
+          "verdict": 1,
+          "latency_s": 2.523,
+          "prompt_tokens": 594,
+          "completion_tokens": 113,
+          "cached": false
+        },
+        "t": 8.667
+      },
+      {
+        "step": 6,
+        "agent": "orchestrator",
+        "action": "second_round_check",
+        "detail": {
+          "round": 2,
+          "rule": "no-majority",
+          "triggered": false,
+          "round1_votes": [
+            1,
+            1,
+            1
+          ]
+        },
+        "t": 8.667
+      },
+      {
+        "step": 7,
+        "agent": "decision",
+        "action": "vote",
+        "detail": {
+          "round": 1,
+          "min_agree": 2,
+          "votes": {
+            "llama": 1,
+            "mistral-local": 1,
+            "phi": 1
+          },
+          "final": 1,
+          "final_round1": 1
+        },
+        "t": 8.667
+      }
+    ],
+    "tool_calls": [
+      {
+        "tool": "pubmed.esearch",
+        "input": "short stay hour ward general academic children hospital",
+        "n_results": 2,
+        "cached": false,
+        "latency_s": 0.668,
+        "round": 1,
+        "error": null
+      },
+      {
+        "tool": "pubmed.efetch",
+        "input": "27885969,10966337",
+        "n_results": 2,
+        "cached": false,
+        "latency_s": 0.509,
+        "round": 1,
+        "error": null
+      }
+    ],
+    "rounds": 1,
+    "final_round1": 1,
+    "flags": []
+  }
+}

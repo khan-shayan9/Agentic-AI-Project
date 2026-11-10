@@ -1,0 +1,16 @@
+# Gap resolution
+
+Missing runs: b0-test-s1, b0-test-s2, b0-test-s3, b1-test-s1, b1-test-s2, b1-test-s3, b2-test-s1, b2-test-s2, b2-test-s3, sysA-test-s2, sysA-test-s3, sysB-test-s1, b4-test-s1, b4-test-s2, b4-test-s3, b5-test-s1, none-test-s1, noblock-test-s1, debate-test-s1
+
+| Gap | Method / component | Metric | Base paper result | Our result | Addressed? |
+| --- | --- | --- | --- | --- | --- |
+| 1: independence | Three verifiers from different model families vote independently (round 1); compared with B4 (one model sampled 3 times, same number of calls) and each verifier alone (B3) | F1; error overlap ratio (both wrong / expected if independent) | B4 (our rerun): F1 -; best single verifier (llama, our rerun, chosen on val): F1 0.697; MedHallu reports no multi-model result | Round-1 vote F1 0.709; vs B4 -; vs best single +0.012 (seed-1 95% CI -0.019 to +0.042); overlap ratio cross-family 1.691 vs same model - | Pending |
+| 2: source leakage | Evidence agent searches PubMed with the source abstract and near copies blocked (setting A); source abstract given (setting B) | F1 vs the MedHallu baselines rerun on the same items; kept leaks in the logs | B0 (our rerun): F1 - (reported 0.522); B1 (our rerun): F1 - (reported 0.797) | System A: F1 0.694, vs B0 -; System B: F1 -, vs B1 -; kept leaks in setting-A runs: 0; source returned and blocked in 84.3% of searches | Pending |
+| 3: abstention | Vote with abstention (2 of 3) and a second evidence round when the votes split; trigger chosen on the validation split only | Coverage (test vs val, within 5 points); accuracy on answered items vs the same system forced to answer | B2 (our rerun, "not sure" allowed): coverage -, accuracy on answered - | Test coverage 0.927 vs val 0.935 (difference 0.008); accuracy on answered 0.644 vs forced 0.613, +0.031 (seed-1 95% CI +0.018 to +0.044) | Fully |
+
+Criterion parts behind each verdict:
+- Gap 1: error overlap reported for the 3 cross-family pairs and for same-model samples: pending (runs missing); round-1 three-family vote F1 > best single verifier (chosen on val): not met; round-1 three-family vote F1 > B4 (same number of calls): pending (runs missing)
+- Gap 2: no kept abstract is the source or a near copy in any setting-A run: met; System A F1 > B0 (rerun on the same items): pending (runs missing); System B F1 > B1 (rerun on the same items): pending (runs missing)
+- Gap 3: |test coverage - val coverage| <= 0.05 (val coverage from final_config.json): met; accuracy on answered items > the same system forced to answer: met
+
+Notes: "Addressed?" is set by the rule in `experiments/facts.py`, fixed in `docs/devlog.md` before any test result existed. The group reviewed the rule's output.

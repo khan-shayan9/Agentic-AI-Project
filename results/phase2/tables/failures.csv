@@ -1,0 +1,601 @@
+item_id,label,difficulty,medhallu_category,failure_category,evidence_state,clean_abstracts_round1,round1_decision,final_decision,rounds,votes_round1,votes_last
+pqa_labeled-00001-gt,0,hard,Incomplete Information,correct,decided in round 1,2,0,0,1,1 0 0,1 0 0
+pqa_labeled-00001-hal,1,hard,Incomplete Information,correct,decided in round 1,2,1,1,1,1 1 0,1 1 0
+pqa_labeled-00002-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,2,1,1,1,1 2 1,1 2 1
+pqa_labeled-00002-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,2,1,1,1,1 1 1,1 1 1
+pqa_labeled-00009-gt,0,hard,Incomplete Information,false alarm - all verifiers,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00009-hal,1,hard,Incomplete Information,correct,round 2 flipped abstain->right,1,2,1,2,2 2 1,1 1 1
+pqa_labeled-00014-gt,0,easy,Incomplete Information,correct,decided in round 1,3,0,0,1,0 2 0,0 2 0
+pqa_labeled-00014-hal,1,easy,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00015-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,decided in round 1,1,1,1,1,1 0 1,1 0 1
+pqa_labeled-00015-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,2 1 1,2 1 1
+pqa_labeled-00022-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 2 0,0 2 0
+pqa_labeled-00022-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00023-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,round 2 changed abstain->wrong,3,2,1,2,2 1 0,1 1 0
+pqa_labeled-00023-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,2 1 1,2 1 1
+pqa_labeled-00024-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,2,0,0,1,0 0 0,0 0 0
+pqa_labeled-00024-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,2,1,1,1,1 0 1,1 0 1
+pqa_labeled-00025-gt,0,hard,Incomplete Information,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00025-hal,1,hard,Incomplete Information,missed hallucination - all verifiers fooled,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00027-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,round 2 changed abstain->wrong,3,2,1,2,1 2 2,1 2 1
+pqa_labeled-00027-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00033-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00033-hal,1,hard,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,1 2 0,1 2 0
+pqa_labeled-00034-gt,0,hard,Incomplete Information,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00034-hal,1,hard,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00035-gt,0,hard,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,2,2,0,2,1 2 0,0 0 0
+pqa_labeled-00035-hal,1,hard,Misinterpretation of #Question#,missed hallucination - majority fooled,round 2 changed abstain->wrong,2,2,0,2,2 1 0,0 1 0
+pqa_labeled-00037-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00037-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00038-gt,0,easy,Incomplete Information,correct,decided in round 1,2,0,0,1,0 0 0,0 0 0
+pqa_labeled-00038-hal,1,easy,Incomplete Information,correct,decided in round 1,2,1,1,1,1 1 1,1 1 1
+pqa_labeled-00039-gt,0,medium,Mechanism and Pathway Misattribution,abstained - votes tied,round 2: no change,1,2,2,2,2 2 0,2 1 0
+pqa_labeled-00039-hal,1,medium,Mechanism and Pathway Misattribution,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00046-gt,0,hard,Incomplete Information,correct,decided in round 1,1,0,0,1,0 0 0,0 0 0
+pqa_labeled-00046-hal,1,hard,Incomplete Information,missed hallucination - all verifiers fooled,decided in round 1,1,0,0,1,0 0 0,0 0 0
+pqa_labeled-00052-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 0 1,1 0 1
+pqa_labeled-00052-hal,1,hard,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,3,0,0,1,0 0 1,0 0 1
+pqa_labeled-00053-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,round 2 changed abstain->wrong,3,2,1,2,2 2 1,1 0 1
+pqa_labeled-00053-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00059-gt,0,hard,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00059-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00060-gt,0,medium,Incomplete Information,correct,no clean evidence,0,0,0,1,0 0 0,0 0 0
+pqa_labeled-00060-hal,1,medium,Incomplete Information,missed hallucination - majority fooled,no clean evidence,0,0,0,1,0 2 0,0 2 0
+pqa_labeled-00061-gt,0,hard,Mechanism and Pathway Misattribution,correct,decided in round 1,3,0,0,1,0 1 0,0 1 0
+pqa_labeled-00061-hal,1,hard,Mechanism and Pathway Misattribution,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00069-gt,0,hard,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00069-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00070-gt,0,medium,Incomplete Information,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00070-hal,1,medium,Incomplete Information,correct,decided in round 1,3,1,1,1,1 0 1,1 0 1
+pqa_labeled-00071-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00071-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00077-gt,0,hard,Incomplete Information,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00077-hal,1,hard,Incomplete Information,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00078-gt,0,medium,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,1 2 0,1 2 0
+pqa_labeled-00078-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 0 1,1 0 1
+pqa_labeled-00080-gt,0,easy,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00080-hal,1,easy,Misinterpretation of #Question#,abstained - majority would have been right,round 2: no change,3,2,2,2,2 1 0,2 2 1
+pqa_labeled-00091-gt,0,medium,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00091-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00095-gt,0,hard,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00095-hal,1,hard,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00096-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00096-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00100-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,2 1 1,2 1 1
+pqa_labeled-00100-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00109-gt,0,easy,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00109-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00111-gt,0,hard,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00111-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00115-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,2,1,1,1,1 1 0,1 1 0
+pqa_labeled-00115-hal,1,hard,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,2,2,1,2,2 2 1,1 2 1
+pqa_labeled-00117-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 0 1,1 0 1
+pqa_labeled-00117-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00123-gt,0,easy,Incomplete Information,abstained - votes tied,round 2: no change,3,2,2,2,1 2 0,1 2 0
+pqa_labeled-00123-hal,1,easy,Incomplete Information,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00126-gt,0,easy,Misinterpretation of #Question#,correct,no clean evidence,0,0,0,1,0 0 0,0 0 0
+pqa_labeled-00126-hal,1,easy,Misinterpretation of #Question#,correct,no clean evidence,0,1,1,1,1 1 1,1 1 1
+pqa_labeled-00127-gt,0,hard,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00127-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00135-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 0 1,1 0 1
+pqa_labeled-00135-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00138-gt,0,hard,Incomplete Information,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00138-hal,1,hard,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00146-gt,0,hard,Incomplete Information,false alarm - all verifiers,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00146-hal,1,hard,Incomplete Information,correct,decided in round 1,1,1,1,1,1 2 1,1 2 1
+pqa_labeled-00147-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,decided in round 1,2,1,1,1,0 1 1,0 1 1
+pqa_labeled-00147-hal,1,medium,Misinterpretation of #Question#,missed hallucination - all verifiers fooled,decided in round 1,2,0,0,1,0 0 0,0 0 0
+pqa_labeled-00154-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00154-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00156-gt,0,easy,Incomplete Information,correct,decided in round 1,2,0,0,1,1 0 0,1 0 0
+pqa_labeled-00156-hal,1,easy,Incomplete Information,correct,decided in round 1,2,1,1,1,1 1 1,1 1 1
+pqa_labeled-00160-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,2 1 1,2 1 1
+pqa_labeled-00160-hal,1,easy,Misinterpretation of #Question#,abstained - majority would have been wrong,round 2: no change,3,2,2,2,1 2 0,2 2 0
+pqa_labeled-00168-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 1 0,0 1 0
+pqa_labeled-00168-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00170-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00170-hal,1,easy,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00171-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00171-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00179-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00179-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 0 1,1 0 1
+pqa_labeled-00182-gt,0,hard,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,2 1 0,1 2 0
+pqa_labeled-00182-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00187-gt,0,medium,Incomplete Information,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00187-hal,1,medium,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00191-gt,0,easy,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,3,2,0,2,2 0 2,1 0 0
+pqa_labeled-00191-hal,1,easy,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,1 2 0,0 2 1
+pqa_labeled-00193-gt,0,easy,Incomplete Information,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00193-hal,1,easy,Incomplete Information,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00195-gt,0,medium,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,2 1 0,1 2 0
+pqa_labeled-00195-hal,1,medium,Misinterpretation of #Question#,missed hallucination - majority fooled,round 2 changed abstain->wrong,3,2,0,2,2 2 0,1 0 0
+pqa_labeled-00199-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00199-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00203-gt,0,hard,Incomplete Information,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00203-hal,1,hard,Incomplete Information,missed hallucination - all verifiers fooled,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00207-gt,0,hard,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00207-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 1 2,1 1 2
+pqa_labeled-00211-gt,0,hard,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00211-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 2,1 1 2
+pqa_labeled-00212-gt,0,hard,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00212-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00217-gt,0,hard,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00217-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00221-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00221-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00222-gt,0,hard,Incomplete Information,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00222-hal,1,hard,Incomplete Information,missed hallucination - all verifiers fooled,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00224-gt,0,hard,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,1 2 0,1 2 0
+pqa_labeled-00224-hal,1,hard,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00234-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,2 0 0,2 0 0
+pqa_labeled-00234-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00236-gt,0,hard,Incomplete Information,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00236-hal,1,hard,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00239-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00239-hal,1,easy,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00244-gt,0,medium,Mechanism and Pathway Misattribution,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00244-hal,1,medium,Mechanism and Pathway Misattribution,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00247-gt,0,hard,Incomplete Information,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00247-hal,1,hard,Incomplete Information,correct,decided in round 1,3,1,1,1,0 1 1,0 1 1
+pqa_labeled-00256-gt,0,medium,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00256-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00266-gt,0,easy,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00266-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00267-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00267-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 0 1,1 0 1
+pqa_labeled-00273-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00273-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00276-gt,0,easy,Incomplete Information,correct,round 2 flipped abstain->right,1,2,0,2,2 1 0,0 0 0
+pqa_labeled-00276-hal,1,easy,Incomplete Information,correct,decided in round 1,1,1,1,1,2 1 1,2 1 1
+pqa_labeled-00283-gt,0,medium,Incomplete Information,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00283-hal,1,medium,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00284-gt,0,hard,Incomplete Information,correct,decided in round 1,3,0,0,1,2 0 0,2 0 0
+pqa_labeled-00284-hal,1,hard,Incomplete Information,abstained - majority would have been wrong,round 2: no change,3,2,2,2,2 1 0,2 2 0
+pqa_labeled-00293-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,2,0,0,1,1 0 0,1 0 0
+pqa_labeled-00293-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,2,1,1,1,1 0 1,1 0 1
+pqa_labeled-00294-gt,0,medium,Incomplete Information,false alarm - majority,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00294-hal,1,medium,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00299-gt,0,easy,Incomplete Information,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00299-hal,1,easy,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00300-gt,0,easy,Incomplete Information,false alarm - majority,decided in round 1,1,1,1,1,2 1 1,2 1 1
+pqa_labeled-00300-hal,1,easy,Incomplete Information,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00302-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,round 2 changed abstain->wrong,2,2,1,2,0 2 1,1 0 1
+pqa_labeled-00302-hal,1,medium,Misinterpretation of #Question#,missed hallucination - majority fooled,round 2 changed abstain->wrong,2,2,0,2,1 2 0,1 0 0
+pqa_labeled-00311-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00311-hal,1,easy,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,3,2,1,2,2 2 1,1 0 1
+pqa_labeled-00314-gt,0,medium,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,2,1,1,1,1 1 1,1 1 1
+pqa_labeled-00314-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,2,1,1,1,1 1 1,1 1 1
+pqa_labeled-00320-gt,0,easy,Incomplete Information,correct,round 2 flipped abstain->right,3,2,0,2,2 2 0,0 0 1
+pqa_labeled-00320-hal,1,easy,Incomplete Information,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00321-gt,0,easy,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00321-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00323-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,decided in round 1,1,1,1,1,2 1 1,2 1 1
+pqa_labeled-00323-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00325-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,decided in round 1,1,1,1,1,0 1 1,0 1 1
+pqa_labeled-00325-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 1 0,1 1 0
+pqa_labeled-00326-gt,0,medium,Incomplete Information,false alarm - majority,round 2 changed abstain->wrong,3,2,1,2,2 0 1,1 1 0
+pqa_labeled-00326-hal,1,medium,Incomplete Information,correct,decided in round 1,3,1,1,1,2 1 1,2 1 1
+pqa_labeled-00332-gt,0,hard,Incomplete Information,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00332-hal,1,hard,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00333-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,1,1,1,1,1 2 1,1 2 1
+pqa_labeled-00333-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,2 1 1,2 1 1
+pqa_labeled-00336-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,1,1,1,1,1 1 0,1 1 0
+pqa_labeled-00336-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00337-gt,0,easy,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,3,2,0,2,1 2 0,1 0 0
+pqa_labeled-00337-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00341-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 2 0,0 2 0
+pqa_labeled-00341-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00342-gt,0,hard,Incomplete Information,false alarm - majority,decided in round 1,2,1,1,1,1 1 0,1 1 0
+pqa_labeled-00342-hal,1,hard,Incomplete Information,abstained - votes tied,round 2: no change,2,2,2,2,2 2 0,1 2 0
+pqa_labeled-00344-gt,0,hard,Misinterpretation of #Question#,correct,no clean evidence,0,0,0,1,0 0 0,0 0 0
+pqa_labeled-00344-hal,1,hard,Misinterpretation of #Question#,missed hallucination - all verifiers fooled,no clean evidence,0,0,0,1,0 0 0,0 0 0
+pqa_labeled-00347-gt,0,medium,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,2 2 0,1 2 0
+pqa_labeled-00347-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00353-gt,0,medium,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,3,2,0,2,1 2 0,1 0 0
+pqa_labeled-00353-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00354-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,round 2 changed abstain->wrong,3,2,1,2,2 1 0,1 1 0
+pqa_labeled-00354-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00360-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00360-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00370-gt,0,hard,Misinterpretation of #Question#,correct,decided in round 1,2,0,0,1,0 0 0,0 0 0
+pqa_labeled-00370-hal,1,hard,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,2,0,0,1,1 0 0,1 0 0
+pqa_labeled-00371-gt,0,easy,Misinterpretation of #Question#,correct,no clean evidence,0,0,0,1,0 0 0,0 0 0
+pqa_labeled-00371-hal,1,easy,Misinterpretation of #Question#,missed hallucination - majority fooled,no clean evidence,0,0,0,1,2 0 0,2 0 0
+pqa_labeled-00373-gt,0,hard,Misinterpretation of #Question#,false alarm - all verifiers,round 2 changed abstain->wrong,3,2,1,2,1 2 0,1 1 1
+pqa_labeled-00373-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 2,1 1 2
+pqa_labeled-00374-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00374-hal,1,hard,Misinterpretation of #Question#,missed hallucination - all verifiers fooled,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00380-gt,0,medium,Incomplete Information,correct,round 2 flipped abstain->right,3,2,0,2,2 2 0,2 0 0
+pqa_labeled-00380-hal,1,medium,Incomplete Information,correct,decided in round 1,3,1,1,1,2 1 1,2 1 1
+pqa_labeled-00381-gt,0,medium,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,3,2,0,2,2 2 0,1 0 0
+pqa_labeled-00381-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00383-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00383-hal,1,easy,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,3,0,0,1,0 2 0,0 2 0
+pqa_labeled-00385-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00385-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00386-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00386-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,2 1 1,2 1 1
+pqa_labeled-00387-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,2,1,1,1,1 2 1,1 2 1
+pqa_labeled-00387-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,2,1,1,1,0 1 1,0 1 1
+pqa_labeled-00388-gt,0,easy,Incomplete Information,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00388-hal,1,easy,Incomplete Information,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00392-gt,0,medium,Incomplete Information,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00392-hal,1,medium,Incomplete Information,missed hallucination - all verifiers fooled,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00397-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,1,0,0,1,0 0 0,0 0 0
+pqa_labeled-00397-hal,1,easy,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,1,0,0,1,2 0 0,2 0 0
+pqa_labeled-00402-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,decided in round 1,1,1,1,1,1 1 0,1 1 0
+pqa_labeled-00402-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00403-gt,0,hard,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,2,2,0,2,2 2 0,1 0 0
+pqa_labeled-00403-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,2,1,1,1,2 1 1,2 1 1
+pqa_labeled-00409-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00409-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 0 1,1 0 1
+pqa_labeled-00410-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00410-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00414-gt,0,hard,Incomplete Information,false alarm - majority,decided in round 1,1,1,1,1,1 2 1,1 2 1
+pqa_labeled-00414-hal,1,hard,Incomplete Information,correct,decided in round 1,1,1,1,1,1 1 0,1 1 0
+pqa_labeled-00416-gt,0,easy,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00416-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00421-gt,0,medium,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00421-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00423-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,round 2 changed abstain->wrong,1,2,1,2,1 0 2,1 2 1
+pqa_labeled-00423-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00434-gt,0,medium,Mechanism and Pathway Misattribution,correct,decided in round 1,1,0,0,1,0 1 0,0 1 0
+pqa_labeled-00434-hal,1,medium,Mechanism and Pathway Misattribution,correct,decided in round 1,1,1,1,1,2 1 1,2 1 1
+pqa_labeled-00436-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00436-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,2 1 1,2 1 1
+pqa_labeled-00441-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,2,0,0,1,0 1 0,0 1 0
+pqa_labeled-00441-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,2,1,1,1,1 0 1,1 0 1
+pqa_labeled-00445-gt,0,hard,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,2,2,2,2,1 2 0,1 2 0
+pqa_labeled-00445-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,2,1,1,1,1 0 1,1 0 1
+pqa_labeled-00446-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00446-hal,1,hard,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,3,0,0,1,0 0 2,0 0 2
+pqa_labeled-00448-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,1,1,1,1,1 1 0,1 1 0
+pqa_labeled-00448-hal,1,hard,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,1,2,1,2,1 2 2,1 2 1
+pqa_labeled-00451-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,1,0,0,1,2 0 0,2 0 0
+pqa_labeled-00451-hal,1,medium,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,1,0,0,1,1 0 0,1 0 0
+pqa_labeled-00453-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,round 2 changed abstain->wrong,1,2,1,2,0 1 2,1 0 1
+pqa_labeled-00453-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00454-gt,0,hard,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00454-hal,1,hard,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00459-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00459-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00461-gt,0,easy,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00461-hal,1,easy,Misinterpretation of #Question#,abstained - majority would have been wrong,round 2: no change,3,2,2,2,2 2 0,2 2 0
+pqa_labeled-00467-gt,0,medium,Mechanism and Pathway Misattribution,false alarm - majority,decided in round 1,1,1,1,1,1 1 0,1 1 0
+pqa_labeled-00467-hal,1,medium,Mechanism and Pathway Misattribution,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00471-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,round 2 changed abstain->wrong,3,2,1,2,2 0 1,1 1 0
+pqa_labeled-00471-hal,1,hard,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,3,2,1,2,1 2 0,1 1 0
+pqa_labeled-00475-gt,0,easy,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,3,2,0,2,1 2 0,2 0 0
+pqa_labeled-00475-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00477-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00477-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,2 1 1,2 1 1
+pqa_labeled-00478-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00478-hal,1,easy,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00480-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00480-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00481-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,decided in round 1,1,1,1,1,1 1 0,1 1 0
+pqa_labeled-00481-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 1 0,1 1 0
+pqa_labeled-00484-gt,0,easy,Incomplete Information,correct,decided in round 1,3,0,0,1,0 0 1,0 0 1
+pqa_labeled-00484-hal,1,easy,Incomplete Information,missed hallucination - majority fooled,decided in round 1,3,0,0,1,0 2 0,0 2 0
+pqa_labeled-00489-gt,0,medium,Misinterpretation of #Question#,abstained - majority would have been wrong,round 2: no change,3,2,2,2,0 2 1,2 2 1
+pqa_labeled-00489-hal,1,medium,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,3,2,1,2,2 2 1,1 2 1
+pqa_labeled-00496-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,0 1 1,0 1 1
+pqa_labeled-00496-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00498-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00498-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00499-gt,0,medium,Incomplete Information,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00499-hal,1,medium,Incomplete Information,missed hallucination - majority fooled,decided in round 1,3,0,0,1,2 0 0,2 0 0
+pqa_labeled-00500-gt,0,hard,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,2 2 1,1 2 0
+pqa_labeled-00500-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,2 1 1,2 1 1
+pqa_labeled-00502-gt,0,hard,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00502-hal,1,hard,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00510-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00510-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00512-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,2 0 0,2 0 0
+pqa_labeled-00512-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 0 1,1 0 1
+pqa_labeled-00517-gt,0,hard,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00517-hal,1,hard,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00518-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00518-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 0 1,1 0 1
+pqa_labeled-00519-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,2 1 1,2 1 1
+pqa_labeled-00519-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00524-gt,0,medium,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00524-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 0 1,1 0 1
+pqa_labeled-00527-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00527-hal,1,hard,Misinterpretation of #Question#,missed hallucination - all verifiers fooled,round 2 changed abstain->wrong,3,2,0,2,2 0 1,0 0 0
+pqa_labeled-00528-gt,0,medium,Incomplete Information,correct,decided in round 1,3,0,0,1,2 0 0,2 0 0
+pqa_labeled-00528-hal,1,medium,Incomplete Information,missed hallucination - majority fooled,decided in round 1,3,0,0,1,0 1 0,0 1 0
+pqa_labeled-00531-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00531-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 0 1,1 0 1
+pqa_labeled-00533-gt,0,easy,Incomplete Information,abstained - votes tied,round 2: no change,3,2,2,2,2 1 0,1 2 0
+pqa_labeled-00533-hal,1,easy,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00538-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00538-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00545-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00545-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00549-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00549-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00551-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00551-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00554-gt,0,medium,Incomplete Information,false alarm - majority,decided in round 1,1,1,1,1,1 1 0,1 1 0
+pqa_labeled-00554-hal,1,medium,Incomplete Information,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00555-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00555-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00558-gt,0,medium,Incomplete Information,false alarm - majority,decided in round 1,3,1,1,1,2 1 1,2 1 1
+pqa_labeled-00558-hal,1,medium,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00559-gt,0,hard,Incomplete Information,false alarm - majority,decided in round 1,2,1,1,1,1 2 1,1 2 1
+pqa_labeled-00559-hal,1,hard,Incomplete Information,correct,decided in round 1,2,1,1,1,1 1 1,1 1 1
+pqa_labeled-00560-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00560-hal,1,easy,Misinterpretation of #Question#,missed hallucination - majority fooled,round 2 changed abstain->wrong,3,2,0,2,1 2 0,2 0 0
+pqa_labeled-00570-gt,0,medium,Incomplete Information,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00570-hal,1,medium,Incomplete Information,abstained - votes tied,round 2: no change,3,2,2,2,1 2 0,1 2 0
+pqa_labeled-00574-gt,0,medium,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00574-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00578-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00578-hal,1,medium,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00581-gt,0,medium,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00581-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00586-gt,0,hard,Incomplete Information,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00586-hal,1,hard,Incomplete Information,correct,decided in round 1,3,1,1,1,2 1 1,2 1 1
+pqa_labeled-00587-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00587-hal,1,medium,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00588-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00588-hal,1,medium,Misinterpretation of #Question#,missed hallucination - all verifiers fooled,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00600-gt,0,hard,Misinterpretation of #Question#,correct,decided in round 1,1,0,0,1,1 0 0,1 0 0
+pqa_labeled-00600-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 0 1,1 0 1
+pqa_labeled-00601-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 1,0 0 1
+pqa_labeled-00601-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00602-gt,0,hard,Incomplete Information,correct,decided in round 1,3,0,0,1,0 1 0,0 1 0
+pqa_labeled-00602-hal,1,hard,Incomplete Information,missed hallucination - all verifiers fooled,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00605-gt,0,medium,Incomplete Information,abstained - votes tied,round 2: no change,3,2,2,2,1 2 0,1 2 0
+pqa_labeled-00605-hal,1,medium,Incomplete Information,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00606-gt,0,medium,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00606-hal,1,medium,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,1,2,2,2,1 2 0,2 1 0
+pqa_labeled-00612-gt,0,medium,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00612-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 0 1,1 0 1
+pqa_labeled-00613-gt,0,hard,Incomplete Information,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00613-hal,1,hard,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00618-gt,0,hard,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,2 0 0,2 0 0
+pqa_labeled-00618-hal,1,hard,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,1 2 2,1 2 0
+pqa_labeled-00619-gt,0,hard,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,3,2,0,2,1 2 0,2 0 0
+pqa_labeled-00619-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00621-gt,0,easy,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,1 2 0,1 2 0
+pqa_labeled-00621-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00625-gt,0,medium,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00625-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00627-gt,0,hard,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,1,2,2,2,2 1 0,2 1 0
+pqa_labeled-00627-hal,1,hard,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,1,2,1,2,2 1 2,1 2 1
+pqa_labeled-00630-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,2 0 0,2 0 0
+pqa_labeled-00630-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00639-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 0 1,1 0 1
+pqa_labeled-00639-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 0 1,1 0 1
+pqa_labeled-00640-gt,0,medium,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,1,2,2,2,2 1 0,2 1 0
+pqa_labeled-00640-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 2 1,1 2 1
+pqa_labeled-00642-gt,0,medium,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00642-hal,1,medium,Misinterpretation of #Question#,missed hallucination - all verifiers fooled,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00643-gt,0,easy,Incomplete Information,false alarm - majority,decided in round 1,1,1,1,1,1 1 2,1 1 2
+pqa_labeled-00643-hal,1,easy,Incomplete Information,correct,decided in round 1,1,1,1,1,1 1 0,1 1 0
+pqa_labeled-00646-gt,0,easy,Incomplete Information,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00646-hal,1,easy,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00648-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,1,0,0,1,1 0 0,1 0 0
+pqa_labeled-00648-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 2 1,1 2 1
+pqa_labeled-00649-gt,0,easy,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,2 1 0,2 1 0
+pqa_labeled-00649-hal,1,easy,Misinterpretation of #Question#,abstained - majority would have been wrong,round 2: no change,3,2,2,2,2 1 2,2 2 0
+pqa_labeled-00650-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00650-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00651-gt,0,hard,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,2,1,1,1,1 1 1,1 1 1
+pqa_labeled-00651-hal,1,hard,Misinterpretation of #Question#,missed hallucination - all verifiers fooled,decided in round 1,2,0,0,1,0 0 0,0 0 0
+pqa_labeled-00653-gt,0,hard,Misinterpretation of #Question#,abstained - majority would have been wrong,round 2: no change,3,2,2,2,2 1 0,2 1 2
+pqa_labeled-00653-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00654-gt,0,easy,Mechanism and Pathway Misattribution,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00654-hal,1,easy,Mechanism and Pathway Misattribution,missed hallucination - all verifiers fooled,round 2 changed abstain->wrong,3,2,0,2,1 2 0,0 0 0
+pqa_labeled-00656-gt,0,easy,Incomplete Information,false alarm - majority,decided in round 1,1,1,1,1,0 1 1,0 1 1
+pqa_labeled-00656-hal,1,easy,Incomplete Information,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00658-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00658-hal,1,medium,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00659-gt,0,medium,Incomplete Information,correct,round 2 flipped abstain->right,3,2,0,2,2 1 0,1 0 0
+pqa_labeled-00659-hal,1,medium,Incomplete Information,missed hallucination - majority fooled,round 2 changed abstain->wrong,3,2,0,2,2 1 0,1 0 0
+pqa_labeled-00660-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,2,0,0,1,2 0 0,2 0 0
+pqa_labeled-00660-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,2,1,1,1,1 1 1,1 1 1
+pqa_labeled-00663-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00663-hal,1,easy,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,2 1 0,1 2 0
+pqa_labeled-00665-gt,0,medium,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,1,2,0,2,1 2 0,1 0 0
+pqa_labeled-00665-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00668-gt,0,easy,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,2 2 0,1 2 0
+pqa_labeled-00668-hal,1,easy,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,3,2,1,2,2 0 1,1 0 1
+pqa_labeled-00669-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00669-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00671-gt,0,hard,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,2 1 0,2 1 0
+pqa_labeled-00671-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00683-gt,0,medium,Misinterpretation of #Question#,false alarm - all verifiers,no clean evidence,0,1,1,1,1 1 1,1 1 1
+pqa_labeled-00683-hal,1,medium,Misinterpretation of #Question#,correct,no clean evidence,0,1,1,1,1 1 1,1 1 1
+pqa_labeled-00686-gt,0,easy,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,2 2 0,2 0 1
+pqa_labeled-00686-hal,1,easy,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,3,2,1,2,2 2 1,1 2 1
+pqa_labeled-00692-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,decided in round 1,2,1,1,1,1 1 0,1 1 0
+pqa_labeled-00692-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,2,1,1,1,0 1 1,0 1 1
+pqa_labeled-00694-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00694-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00695-gt,0,medium,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00695-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00700-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00700-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00707-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00707-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00709-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,0 1 1,0 1 1
+pqa_labeled-00709-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 0 1,1 0 1
+pqa_labeled-00710-gt,0,hard,Incomplete Information,false alarm - majority,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00710-hal,1,hard,Incomplete Information,missed hallucination - majority fooled,decided in round 1,3,0,0,1,0 0 1,0 0 1
+pqa_labeled-00713-gt,0,medium,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,2,1,1,1,1 1 1,1 1 1
+pqa_labeled-00713-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,2,1,1,1,1 1 1,1 1 1
+pqa_labeled-00721-gt,0,hard,Incomplete Information,correct,round 2 flipped abstain->right,3,2,0,2,2 2 1,1 0 0
+pqa_labeled-00721-hal,1,hard,Incomplete Information,missed hallucination - majority fooled,decided in round 1,3,0,0,1,0 2 0,0 2 0
+pqa_labeled-00724-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,2,0,0,1,2 0 0,2 0 0
+pqa_labeled-00724-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,2,1,1,1,1 1 1,1 1 1
+pqa_labeled-00730-gt,0,easy,Incomplete Information,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00730-hal,1,easy,Incomplete Information,correct,round 2 flipped abstain->right,3,2,1,2,1 2 0,1 2 1
+pqa_labeled-00737-gt,0,hard,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00737-hal,1,hard,Misinterpretation of #Question#,missed hallucination - all verifiers fooled,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00738-gt,0,hard,Incomplete Information,correct,decided in round 1,3,0,0,1,2 0 0,2 0 0
+pqa_labeled-00738-hal,1,hard,Incomplete Information,missed hallucination - majority fooled,decided in round 1,3,0,0,1,2 0 0,2 0 0
+pqa_labeled-00743-gt,0,hard,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,1 2 0,1 2 0
+pqa_labeled-00743-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00745-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00745-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00746-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,1,0,0,1,0 0 1,0 0 1
+pqa_labeled-00746-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00748-gt,0,hard,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,1 2 0,1 2 0
+pqa_labeled-00748-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00757-gt,0,easy,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,2 1 0,2 1 0
+pqa_labeled-00757-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00767-gt,0,hard,Incomplete Information,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00767-hal,1,hard,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00768-gt,0,easy,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00768-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 2 1,1 2 1
+pqa_labeled-00770-gt,0,medium,Incomplete Information,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00770-hal,1,medium,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00771-gt,0,medium,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00771-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00775-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00775-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00781-gt,0,hard,Misinterpretation of #Question#,abstained - majority would have been wrong,round 2: no change,3,2,2,2,2 2 1,2 2 1
+pqa_labeled-00781-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 0 1,1 0 1
+pqa_labeled-00790-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,round 2 changed abstain->wrong,3,2,1,2,2 1 0,2 1 1
+pqa_labeled-00790-hal,1,medium,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,3,2,1,2,2 0 1,1 0 1
+pqa_labeled-00791-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,decided in round 1,1,1,1,1,1 1 0,1 1 0
+pqa_labeled-00791-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00793-gt,0,hard,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00793-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00795-gt,0,medium,Incomplete Information,correct,decided in round 1,1,0,0,1,0 0 0,0 0 0
+pqa_labeled-00795-hal,1,medium,Incomplete Information,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00797-gt,0,medium,Incomplete Information,false alarm - all verifiers,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00797-hal,1,medium,Incomplete Information,correct,round 2 flipped abstain->right,1,2,1,2,1 2 0,1 2 1
+pqa_labeled-00799-gt,0,hard,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00799-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00810-gt,0,hard,Misinterpretation of #Question#,abstained - votes tied,round 2: no change,3,2,2,2,1 2 0,1 2 0
+pqa_labeled-00810-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00812-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00812-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00814-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00814-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00821-gt,0,hard,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00821-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00824-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00824-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00826-gt,0,medium,Incomplete Information,false alarm - majority,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00826-hal,1,medium,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00829-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,decided in round 1,1,1,1,1,1 0 1,1 0 1
+pqa_labeled-00829-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00834-gt,0,hard,Misinterpretation of #Question#,false alarm - all verifiers,round 2 changed abstain->wrong,3,2,1,2,2 0 1,1 1 1
+pqa_labeled-00834-hal,1,hard,Misinterpretation of #Question#,missed hallucination - majority fooled,round 2 changed abstain->wrong,3,2,0,2,2 0 1,1 0 0
+pqa_labeled-00835-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,1,0,0,1,0 0 0,0 0 0
+pqa_labeled-00835-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00837-gt,0,easy,Incomplete Information,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00837-hal,1,easy,Incomplete Information,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00845-gt,0,hard,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00845-hal,1,hard,Misinterpretation of #Question#,missed hallucination - all verifiers fooled,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00852-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00852-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00854-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00854-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00856-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,2,0,0,1,0 0 0,0 0 0
+pqa_labeled-00856-hal,1,easy,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,2,0,0,1,0 0 1,0 0 1
+pqa_labeled-00860-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,2,0,0,1,1 0 0,1 0 0
+pqa_labeled-00860-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,2,1,1,1,1 1 1,1 1 1
+pqa_labeled-00864-gt,0,easy,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,3,2,0,2,1 2 0,0 2 0
+pqa_labeled-00864-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00867-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,2 1 1,2 1 1
+pqa_labeled-00867-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00871-gt,0,hard,Misinterpretation of #Question#,abstained - majority would have been wrong,round 2: no change,0,2,2,2,2 2 0,2 2 1
+pqa_labeled-00871-hal,1,hard,Misinterpretation of #Question#,correct,no clean evidence,0,1,1,1,2 1 1,2 1 1
+pqa_labeled-00874-gt,0,easy,Methodological and Evidence Fabrication,false alarm - all verifiers,decided in round 1,2,1,1,1,1 1 1,1 1 1
+pqa_labeled-00874-hal,1,easy,Methodological and Evidence Fabrication,correct,decided in round 1,2,1,1,1,1 2 1,1 2 1
+pqa_labeled-00875-gt,0,medium,Mechanism and Pathway Misattribution,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00875-hal,1,medium,Mechanism and Pathway Misattribution,correct,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00876-gt,0,easy,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00876-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00877-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00877-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00878-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00878-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00885-gt,0,hard,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00885-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00891-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,2 0 0,2 0 0
+pqa_labeled-00891-hal,1,easy,Misinterpretation of #Question#,abstained - majority would have been wrong,round 2: no change,3,2,2,2,1 2 0,2 2 0
+pqa_labeled-00896-gt,0,easy,Incomplete Information,correct,decided in round 1,3,0,0,1,0 2 0,0 2 0
+pqa_labeled-00896-hal,1,easy,Incomplete Information,missed hallucination - all verifiers fooled,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00898-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,round 2 changed abstain->wrong,2,2,1,2,2 2 0,1 1 2
+pqa_labeled-00898-hal,1,hard,Misinterpretation of #Question#,missed hallucination - majority fooled,round 2 changed abstain->wrong,2,2,0,2,1 0 2,0 1 0
+pqa_labeled-00901-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,decided in round 1,1,1,1,1,1 1 0,1 1 0
+pqa_labeled-00901-hal,1,hard,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,1,0,0,1,1 0 0,1 0 0
+pqa_labeled-00904-gt,0,medium,Incomplete Information,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00904-hal,1,medium,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00905-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 1,0 0 1
+pqa_labeled-00905-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00907-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 1 0,0 1 0
+pqa_labeled-00907-hal,1,easy,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00914-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00914-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,0 1 1,0 1 1
+pqa_labeled-00917-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00917-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00919-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00919-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00926-gt,0,easy,Incomplete Information,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00926-hal,1,easy,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00935-gt,0,medium,Incomplete Information,abstained - majority would have been right,round 2: no change,3,2,2,2,2 2 0,2 2 0
+pqa_labeled-00935-hal,1,medium,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00939-gt,0,medium,Incomplete Information,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00939-hal,1,medium,Incomplete Information,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00942-gt,0,hard,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00942-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00944-gt,0,medium,Mechanism and Pathway Misattribution,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00944-hal,1,medium,Mechanism and Pathway Misattribution,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00945-gt,0,medium,Mechanism and Pathway Misattribution,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00945-hal,1,medium,Mechanism and Pathway Misattribution,correct,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00948-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00948-hal,1,medium,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00949-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 1 0,0 1 0
+pqa_labeled-00949-hal,1,medium,Misinterpretation of #Question#,correct,round 2 flipped abstain->right,3,2,1,2,2 1 0,2 1 1
+pqa_labeled-00950-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00950-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00951-gt,0,hard,Misinterpretation of #Question#,abstained - votes tied,"second round triggered, no new evidence",3,2,2,1,1 2 0,1 2 0
+pqa_labeled-00951-hal,1,hard,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00956-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,2,0,0,1,0 0 0,0 0 0
+pqa_labeled-00956-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,2,1,1,1,1 1 1,1 1 1
+pqa_labeled-00957-gt,0,hard,Misinterpretation of #Question#,correct,decided in round 1,2,0,0,1,0 0 0,0 0 0
+pqa_labeled-00957-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,2,1,1,1,0 1 1,0 1 1
+pqa_labeled-00962-gt,0,easy,Incomplete Information,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00962-hal,1,easy,Incomplete Information,missed hallucination - all verifiers fooled,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00965-gt,0,medium,Incomplete Information,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00965-hal,1,medium,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00967-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00967-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00968-gt,0,easy,Misinterpretation of #Question#,abstained - majority would have been wrong,round 2: no change,3,2,2,2,2 2 0,2 2 1
+pqa_labeled-00968-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,2 1 1,2 1 1
+pqa_labeled-00974-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00974-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00976-gt,0,medium,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00976-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00980-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,round 2 changed abstain->wrong,3,2,1,2,2 1 0,1 1 0
+pqa_labeled-00980-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00981-gt,0,hard,Misinterpretation of #Question#,false alarm - majority,round 2 changed abstain->wrong,3,2,1,2,2 0 1,1 0 1
+pqa_labeled-00981-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 2 1,1 2 1
+pqa_labeled-00982-gt,0,easy,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00982-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,1,1,1,1,1 1 1,1 1 1
+pqa_labeled-00984-gt,0,medium,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00984-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,2 1 1,2 1 1
+pqa_labeled-00987-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,decided in round 1,3,1,1,1,1 1 0,1 1 0
+pqa_labeled-00987-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00990-gt,0,hard,Incomplete Information,correct,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00990-hal,1,hard,Incomplete Information,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00991-gt,0,hard,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00991-hal,1,hard,Misinterpretation of #Question#,missed hallucination - all verifiers fooled,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00993-gt,0,hard,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00993-hal,1,hard,Misinterpretation of #Question#,missed hallucination - majority fooled,decided in round 1,3,0,0,1,1 0 0,1 0 0
+pqa_labeled-00994-gt,0,medium,Misinterpretation of #Question#,false alarm - majority,decided in round 1,2,1,1,1,1 1 0,1 1 0
+pqa_labeled-00994-hal,1,medium,Misinterpretation of #Question#,correct,decided in round 1,2,1,1,1,1 1 1,1 1 1
+pqa_labeled-00995-gt,0,medium,Misinterpretation of #Question#,abstained - majority would have been right,round 2: no change,3,2,2,2,2 2 0,2 2 0
+pqa_labeled-00995-hal,1,medium,Misinterpretation of #Question#,abstained - majority would have been right,round 2: no change,3,2,2,2,2 1 2,2 2 1
+pqa_labeled-00996-gt,0,hard,Misinterpretation of #Question#,false alarm - all verifiers,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00996-hal,1,hard,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1
+pqa_labeled-00998-gt,0,easy,Misinterpretation of #Question#,correct,decided in round 1,3,0,0,1,0 0 0,0 0 0
+pqa_labeled-00998-hal,1,easy,Misinterpretation of #Question#,correct,decided in round 1,3,1,1,1,1 1 1,1 1 1

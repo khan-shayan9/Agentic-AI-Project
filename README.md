@@ -197,6 +197,9 @@ These are early validation results. So far the three model families share many m
 - **The vote rule stays at 2 of 3**, although `tune` preferred 1 of 3: 2 of 3 is a true majority, it abstains more often so gap 3 can be measured, and its accuracy on answered items is within 1-2 answers of 1 of 3 (0.646 vs 0.654).
 - **New in Phase 2:** a second evidence round with claim queries when the votes split (the agentic loop from the proposal), one re-ask when a reply has no readable verdict, a debate ablation, seeds for repeat runs, structured trajectories (`steps`) and PubMed tool-call logs (`tool_calls`), leakage and efficiency summaries, and a resume check for baseline folders. See [docs/devlog.md](docs/devlog.md).
 - **A PubMed error no longer stops a run:** requests that get HTTP 400, 429 or 5xx, or no response, are retried up to 6 times; if PubMed still fails, the item is flagged `pubmed_error` and judged without the missing evidence (the round-1 votes stand in round 2), and `evaluate` counts these items.
+- **Fast track on test:** only `sysA-test-s1` was run on the test split (seed 1), because the GPU time was not enough for the full plan. The other test configurations (B0-B2, B4, B5, System B, debate, no evidence, no blocking) were not run and are listed in the paper's limitations; the partial `b0-test-s1` (217 of 600 items) was discarded.
+- **Baselines B0-B2 are the Phase 1 re-runs** on the same 600 test answers (same split, prompt and settings), in [`results/phase2/tables/baselines_phase1.md`](results/phase2/tables/baselines_phase1.md); they have no per-item predictions, so there are no paired tests against them.
+- **System A test result:** F1 0.694 (95% CI 0.656-0.734), coverage 0.927, accuracy on answered 0.644. The second round lowers F1 by 0.015 and raises coverage by 0.087.
 
 ## Phase 2 experiments
 
@@ -249,7 +252,13 @@ pip install -e ".[analysis]"                 # matplotlib, needed for the figure
 How the hypotheses (see [Phase 2 experiments](#phase-2-experiments)) are tested: **H1** by `significance` (System A round-1 vote vs B4 and vs the best single verifier) and `overlap` (cross-family vs same-model pairs); **H2** by `main` and `significance` (System A vs B0 and B1, System B vs B1) and `leakage`; **H3** by the coverage in `main` against the val coverage in `experiments/final_config.json`, and System A vs its forced-answer version in `ablation`. The gap table below is written by `python -m experiments.report`; "Addressed?" follows the rule fixed in [docs/devlog.md](docs/devlog.md) before any test result existed.
 
 <!-- GAP_TABLE_START -->
-Pending: no Phase 2 test run has been exported yet. `python -m experiments.export`, then `python -m experiments.report`, fills this table.
+| Gap | Method / component | Metric | Base paper result | Our result | Addressed? |
+| --- | --- | --- | --- | --- | --- |
+| 1: independent checking | Three checkers from different model makers vote separately (round 1) | F1; accuracy on answered; shared-mistake ratio (both wrong / expected) | Single checker only (MedHallu); best single checker (Llama, our run, chosen on val): F1 0.697, accuracy 0.607 | Vote F1 0.709 (+0.012, 95% CI -0.019 to +0.042, not significant); accuracy 0.655 (+0.048, CI 0.012 to 0.084); shared-mistake ratio 1.52-1.82 | Partially |
+| 2: evidence without the source | PubMed evidence agent with the source and near copies removed (setting A) | F1 vs the MedHallu baselines; source leaks into evidence | B0 (our Phase 1 re-run): 0.477 (paper 0.522); B1 with source: 0.755 (paper 0.797) | F1 0.694 (0.656-0.734), between B0 and B1; hard items 0.608 vs 0.271; source found for 83.3% of answers, 0 leaks | Partially |
+| 3: controlled abstention | 2-of-3 vote with abstention and a second search round; rule set on validation only | Coverage (test vs val, within 5 points); accuracy on answered vs forced answers | B2 "not sure" (our Phase 1 re-run): coverage 1.000 (never used) | Coverage 0.927 vs 0.935 on val; accuracy 0.644 vs 0.613 forced (+0.031, CI 0.018 to 0.044) | Fully |
+
+Notes: seed 1 only. Gap 1 is "Partially" because B4 (same-model baseline) was not run and the F1 gain over the best single checker is not significant. Gap 2 is "Partially" because System B and the no-removal run were not done. B0-B2 are the Phase 1 re-runs on the same 600 test answers.
 <!-- GAP_TABLE_END -->
 
 ## Tests

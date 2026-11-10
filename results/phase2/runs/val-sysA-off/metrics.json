@@ -1,0 +1,94 @@
+{
+  "overall": {
+    "n": 200,
+    "answered": 168,
+    "coverage": 0.84,
+    "abstain_rate": 0.16,
+    "invalid_rate": 0.0,
+    "precision": 0.6435643564356436,
+    "recall": 0.7471264367816092,
+    "f1": 0.6914893617021277,
+    "accuracy": 0.6547619047619048,
+    "selective_accuracy": 0.6547619047619048,
+    "f1_ci95": [
+      0.6043956043956044,
+      0.758974358974359
+    ]
+  },
+  "missing_predictions": 0,
+  "easy": {
+    "n": 68,
+    "answered": 59,
+    "coverage": 0.8676470588235294,
+    "abstain_rate": 0.1323529411764706,
+    "invalid_rate": 0.0,
+    "precision": 0.7368421052631579,
+    "recall": 0.9032258064516129,
+    "f1": 0.8115942028985507,
+    "accuracy": 0.7796610169491526,
+    "selective_accuracy": 0.7796610169491526
+  },
+  "medium": {
+    "n": 66,
+    "answered": 52,
+    "coverage": 0.7878787878787878,
+    "abstain_rate": 0.21212121212121213,
+    "invalid_rate": 0.0,
+    "precision": 0.6571428571428571,
+    "recall": 0.8518518518518519,
+    "f1": 0.7419354838709677,
+    "accuracy": 0.6923076923076923,
+    "selective_accuracy": 0.6923076923076923
+  },
+  "hard": {
+    "n": 66,
+    "answered": 57,
+    "coverage": 0.8636363636363636,
+    "abstain_rate": 0.13636363636363635,
+    "invalid_rate": 0.0,
+    "precision": 0.5,
+    "recall": 0.4827586206896552,
+    "f1": 0.49122807017543857,
+    "accuracy": 0.49122807017543857,
+    "selective_accuracy": 0.49122807017543857
+  },
+  "cost": {
+    "calls": 200,
+    "cached_calls": 0,
+    "mean_latency_s": 9.91398,
+    "mean_prompt_tokens": 2658.86,
+    "mean_completion_tokens": 320.86
+  },
+  "leakage": {
+    "round1": {
+      "items_searched": 200,
+      "source_pmid_share": 0.81,
+      "near_duplicate_share": 0.0,
+      "leaked_into_evidence_share": 0.0,
+      "mean_clean_abstracts": 2.51,
+      "items_no_evidence": 2,
+      "items_no_evidence_share": 0.01
+    },
+    "round2": {
+      "items_searched": 0
+    }
+  },
+  "efficiency": {
+    "items": 200,
+    "model_calls_per_item": 3.0,
+    "prompt_tokens_per_item": 2658.86,
+    "completion_tokens_per_item": 320.86,
+    "max_prompt_tokens": 1360,
+    "model_seconds_per_item": 9.91398,
+    "pubmed_requests_per_item": 2.36,
+    "pubmed_uncached_per_item": 1.18,
+    "pubmed_cached_per_item": 1.18,
+    "tool_calls_logged": true,
+    "round2_triggered_share": 0.0,
+    "round2_share": 0.0,
+    "no_new_evidence_share": 0.0,
+    "reasks": 0,
+    "abstain_share": 0.16,
+    "unreadable_replies": 0
+  }
+}

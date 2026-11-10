@@ -1,0 +1,8 @@
+level,pair_type,pair,run,seed,n_seeds,n,both_wrong,both_wrong_sd,expected_if_independent,overlap_ratio,overlap_ratio_sd,phi,phi_sd
+pair,cross-family,llama vs mistral-local,sysA-test-s1,1,,411,0.26277372262773724,,0.15152645319409663,1.7341772151898738,,0.46797970453312976,
+pair,cross-family,llama vs phi,sysA-test-s1,1,,493,0.18661257606490872,,0.1229217153742661,1.5181416521622706,,0.28130295071351263,
+pair,cross-family,mistral-local vs phi,sysA-test-s1,1,,470,0.2170212765957447,,0.11914893617021277,1.8214285714285714,,0.43684887642861214,
+pair (mean over seeds),cross-family,llama vs mistral-local,,,1,,0.26277372262773724,,0.15152645319409663,1.7341772151898738,,0.46797970453312976,
+pair (mean over seeds),cross-family,llama vs phi,,,1,,0.18661257606490872,,0.1229217153742661,1.5181416521622706,,0.28130295071351263,
+pair (mean over seeds),cross-family,mistral-local vs phi,,,1,,0.2170212765957447,,0.11914893617021277,1.8214285714285714,,0.43684887642861214,
+pair type (mean over seeds),cross-family,all cross-family pairs,,,1,,0.22213585842946357,,0.1311990349128585,1.6912491462602386,,0.39537717722508486,

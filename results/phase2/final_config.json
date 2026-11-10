@@ -1,0 +1,46 @@
+{
+  "trigger": "no-majority",
+  "chosen_run": "val-sysA-nomaj",
+  "val": {
+    "coverage": 0.935,
+    "selective_accuracy": 0.6256684491978609,
+    "f1": 0.6534653465346535
+  },
+  "candidates": [
+    {
+      "run": "val-sysA-off",
+      "trigger": "off",
+      "coverage": 0.84,
+      "selective_accuracy": 0.6547619047619048,
+      "f1": 0.6914893617021277,
+      "eligible": null,
+      "round2_share": 0.0,
+      "model_seconds_per_item": 9.91398
+    },
+    {
+      "run": "val-sysA-split",
+      "trigger": "split",
+      "coverage": 0.855,
+      "selective_accuracy": 0.6081871345029239,
+      "f1": 0.6256983240223464,
+      "eligible": true,
+      "round2_share": 0.585,
+      "model_seconds_per_item": 23.43121
+    },
+    {
+      "run": "val-sysA-nomaj",
+      "trigger": "no-majority",
+      "coverage": 0.935,
+      "selective_accuracy": 0.6256684491978609,
+      "f1": 0.6534653465346535,
+      "eligible": true,
+      "round2_share": 0.15,
+      "model_seconds_per_item": 17.02936
+    }
+  ],
+  "rule": "On the validation split only: among the triggers 'split' and 'no-majority', keep those with coverage >= 0.70; choose the one with the highest accuracy on answered items; if the two are within 0.005 of each other, choose 'no-majority' (cheaper). 'Second round off' is reported as an ablation (evaluate --round 1), not chosen.",
+  "min_coverage": 0.7,
+  "tie_margin": 0.005,
+  "date": "2026-11-10",
+  "git_commit": "e51ab18e59c71873acd3516f0e0d7be765662df3"
+}

@@ -1,0 +1,101 @@
+{
+  "overall": {
+    "n": 200,
+    "answered": 187,
+    "coverage": 0.935,
+    "abstain_rate": 0.065,
+    "invalid_rate": 0.0,
+    "precision": 0.6111111111111112,
+    "recall": 0.7021276595744681,
+    "f1": 0.6534653465346535,
+    "accuracy": 0.6256684491978609,
+    "selective_accuracy": 0.6256684491978609,
+    "f1_ci95": [
+      0.5698924731182795,
+      0.7230046948356808
+    ]
+  },
+  "missing_predictions": 0,
+  "easy": {
+    "n": 68,
+    "answered": 66,
+    "coverage": 0.9705882352941176,
+    "abstain_rate": 0.029411764705882353,
+    "invalid_rate": 0.0,
+    "precision": 0.6666666666666666,
+    "recall": 0.9090909090909091,
+    "f1": 0.7692307692307692,
+    "accuracy": 0.7272727272727273,
+    "selective_accuracy": 0.7272727272727273
+  },
+  "medium": {
+    "n": 66,
+    "answered": 58,
+    "coverage": 0.8787878787878788,
+    "abstain_rate": 0.12121212121212122,
+    "invalid_rate": 0.0,
+    "precision": 0.6285714285714286,
+    "recall": 0.7586206896551724,
+    "f1": 0.6875,
+    "accuracy": 0.6551724137931034,
+    "selective_accuracy": 0.6551724137931034
+  },
+  "hard": {
+    "n": 66,
+    "answered": 63,
+    "coverage": 0.9545454545454546,
+    "abstain_rate": 0.045454545454545456,
+    "invalid_rate": 0.0,
+    "precision": 0.5,
+    "recall": 0.4375,
+    "f1": 0.4666666666666667,
+    "accuracy": 0.49206349206349204,
+    "selective_accuracy": 0.49206349206349204
+  },
+  "cost": {
+    "calls": 200,
+    "cached_calls": 114,
+    "mean_latency_s": 17.02936,
+    "mean_prompt_tokens": 3257.47,
+    "mean_completion_tokens": 374.505
+  },
+  "leakage": {
+    "round1": {
+      "items_searched": 200,
+      "source_pmid_share": 0.81,
+      "near_duplicate_share": 0.0,
+      "leaked_into_evidence_share": 0.0,
+      "mean_clean_abstracts": 2.51,
+      "items_no_evidence": 2,
+      "items_no_evidence_share": 0.01
+    },
+    "round2": {
+      "items_searched": 30,
+      "source_pmid_share": 0.16666666666666666,
+      "near_duplicate_share": 0.0,
+      "leaked_into_evidence_share": 0.0,
+      "mean_clean_abstracts": 1.9,
+      "items_no_evidence": 0,
+      "items_no_evidence_share": 0.0
+    }
+  },
+  "efficiency": {
+    "items": 200,
+    "model_calls_per_item": 3.45,
+    "prompt_tokens_per_item": 3257.47,
+    "completion_tokens_per_item": 374.505,
+    "max_prompt_tokens": 1920,
+    "model_seconds_per_item": 17.02936,
+    "pubmed_requests_per_item": 2.69,
+    "pubmed_uncached_per_item": 0.625,
+    "pubmed_cached_per_item": 2.065,
+    "tool_calls_logged": true,
+    "round2_triggered_share": 0.15,
+    "round2_share": 0.15,
+    "no_new_evidence_share": 0.0,
+    "pubmed_errors": 0,
+    "reasks": 0,
+    "abstain_share": 0.065,
+    "unreadable_replies": 0
+  }
+}

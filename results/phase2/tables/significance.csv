@@ -1,0 +1,11 @@
+comparison,a,b,missing,n,f1_diff,f1_ci_low,f1_ci_high,f1_p,acc_diff,acc_ci_low,acc_ci_high,acc_p,mcnemar_both_answered,mcnemar_b,mcnemar_c,mcnemar_p,n_seeds,mean_diff_f1,sd_diff_f1,mean_diff_selective_accuracy,sd_diff_selective_accuracy
+System A vs B0,sysA-test-s1,,runs missing,,,,,,,,,,,,,,,,,,
+System A vs B1,sysA-test-s1,,runs missing,,,,,,,,,,,,,,,,,,
+System B vs B1,,,runs missing,,,,,,,,,,,,,,,,,,
+System A round-1 vote vs B4,sysA-test-s1,,runs missing,,,,,,,,,,,,,,,,,,
+"System A round-1 vote vs best single verifier (llama, chosen on val)",sysA-test-s1,sysA-test-s1,,600,0.011782393912429634,-0.01885794473229696,0.04184020566476199,0.4596,0.04761904761904767,0.01189990480076164,0.08416833667334667,0.009,466,42,27,0.09118649056701152,,,,,
+System A vs System A round 1,sysA-test-s1,sysA-test-s1,,600,-0.01458565589000349,-0.027341587994370475,-0.0023579984140895682,0.02,-0.010877012675573838,-0.02453860305026412,0.00229348056912293,0.1096,504,0,0,1.0,,,,,
+System A vs B5,sysA-test-s1,,runs missing,,,,,,,,,,,,,,,,,,
+System A vs no evidence,sysA-test-s1,,runs missing,,,,,,,,,,,,,,,,,,
+No blocking vs System A,,sysA-test-s1,runs missing,,,,,,,,,,,,,,,,,,
+Debate vs System A round 1,,sysA-test-s1,runs missing,,,,,,,,,,,,,,,,,,
